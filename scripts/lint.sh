@@ -20,6 +20,9 @@ error()   { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; }
 # --- Main ---
 info "Running linters (clang-tidy + cppcheck)..."
 
+# clang-tidy needs build/compile_commands.json; only the test image has cmake + Catch2
+docker compose -f "${PROJECT_ROOT}/docker/docker-compose.yml" run --rm test-native \
+    bash -c "cmake -S /workspace -B /workspace/build -G Ninja"
 docker compose -f "${PROJECT_ROOT}/docker/docker-compose.yml" run --rm lint
 
 success "Linting complete — no issues found."

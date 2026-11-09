@@ -34,6 +34,12 @@ class TestSensorProtocols(unittest.TestCase):
         self.assertEqual(frame[12:20], b"\x00" * 8)
         self.assertEqual(frame[20:28], b"\x00" * 8)
 
+    def test_ld2450_matches_datasheet_example(self):
+        # Datasheet: x=-782mm, y=1713mm, speed=-16cm/s, resolution=320mm (sign-magnitude, bit 15 = positive)
+        targets = [SimulatedTarget(id=1, x=-0.782, y=1.713, speed=-0.16, distance_resolution=0.32, is_valid=True)]
+        frame = get_protocol("ld2450").encode_frame(targets)
+        self.assertEqual(frame, bytes([0xAA, 0xFF, 0x03, 0x00, 0x0E, 0x03, 0xB1, 0x86, 0x10, 0x00, 0x40, 0x01] + [0x00] * 16 + [0x55, 0xCC]))
+
     def test_rd03d_frame_structure(self):
         encoder = get_protocol("rd03d")
         targets = [

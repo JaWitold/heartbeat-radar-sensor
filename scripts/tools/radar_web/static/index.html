@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical Heartbeat Radar HUD</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="hud-container">
+        <!-- Top Bar -->
+        <header class="hud-header">
+            <div class="title-group">
+                <h1 class="glow-text">TACTICAL HEARTBEAT RADAR</h1>
+                <p class="subtitle">HLK-LD2450 FMCW mmWave Feed // COD MW2 &amp; R6 Tactical Web HUD</p>
+            </div>
+            <div class="status-group">
+                <div id="status-badge" class="badge badge-disconnected">DISCONNECTED</div>
+                <div class="stat-pill">TARGETS: <span id="stat-targets" class="glow-val">0</span></div>
+                <div class="stat-pill">FPS: <span id="stat-fps" class="glow-val">0</span></div>
+                <button id="btn-audio" class="btn-audio">🔊 AUDIO: OFF</button>
+            </div>
+        </header>
+
+        <!-- Main Display Grid -->
+        <main class="hud-main">
+            <!-- Radar Canvas Section -->
+            <section class="radar-viewport">
+                <div id="danger-banner" class="danger-banner hidden">⚠️ PROXIMITY HAZARD // TARGET IN DANGER ZONE ⚠️</div>
+                <canvas id="radar-canvas"></canvas>
+                <div class="scanlines"></div>
+            </section>
+
+            <!-- Telemetry Sidebar -->
+            <aside class="hud-sidebar">
+                <div class="panel">
+                    <h2 class="panel-title">LIVE TELEMETRY</h2>
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>X (m)</th>
+                                <th>Y (m)</th>
+                                <th>DIST</th>
+                                <th>VEL</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="telemetry-body">
+                            <tr>
+                                <td colspan="6" class="no-data">AWAITING CONTACTS...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="panel threat-panel">
+                    <h2 class="panel-title">THREAT ASSESSMENT</h2>
+                    <div id="threat-indicator" class="threat-box threat-safe">
+                        <span id="threat-level">ZONE CLEAR</span>
+                    </div>
+                </div>
+
+                <div class="panel info-panel">
+                    <h2 class="panel-title">RADAR SPECIFICATIONS</h2>
+                    <div class="info-row"><span>Sensor:</span><strong>HLK-LD2450 24GHz FMCW</strong></div>
+                    <div class="info-row"><span>Field of View:</span><strong>-60° to +60° (120°)</strong></div>
+                    <div class="info-row"><span>Max Range:</span><strong>6.0 Meters</strong></div>
+                    <div class="info-row"><span>Danger Threshold:</span><strong class="color-danger">&lt; 1.50 Meters</strong></div>
+                    <div class="info-row"><span>Caution Threshold:</span><strong class="color-caution">1.50m - 3.50m</strong></div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="/static/radar.js"></script>
+</body>
+</html>

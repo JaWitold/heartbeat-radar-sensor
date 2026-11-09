@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "pyserial>=3.5",
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -16,14 +17,15 @@ dev = [
 [project.scripts]
 sim-radar = "sensor_sim.main:main"
 radar-gui = "radar_gui.app:main"
+radar-web = "radar_web.app:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["sensor_sim", "radar_gui"]
+packages = ["sensor_sim", "radar_gui", "radar_web"]
 
 [tool.pytest.ini_options]
-testpaths = ["sensor_sim/tests", "radar_gui/tests"]
+testpaths = ["sensor_sim/tests", "radar_gui/tests", "radar_web/tests"]
 python_files = ["test_*.py"]

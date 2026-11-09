@@ -19,6 +19,28 @@ class RadarContact:
     distance: float      # Euclidean distance in meters
     angle_deg: float     # Azimuth angle in degrees (-90 to +90)
     timestamp: float     # Local reception timestamp
+    threat_zone: Optional[str] = None  # From firmware telemetry; None for raw sensor frames
+
+
+# Fallback thresholds for raw LD2450 frames (mirror LD2450Adapter::SPECS); firmware JSON carries its own zone.
+DANGER_DISTANCE_M = 1.5
+CAUTION_DISTANCE_M = 3.5
+
+
+def zone_of(contact: RadarContact) -> str:
+    """Danger / Caution / Safe, preferring the zone the firmware computed."""
+    if contact.threat_zone:
+        return contact.threat_zone
+    if contact.distance < DANGER_DISTANCE_M:
+        return "Danger"
+    if contact.distance <= CAUTION_DISTANCE_M:
+        return "Caution"
+    return "Safe"
+
+
+def _ld2450_signed(raw: int) -> int:
+    """LD2450 sign-magnitude field: bit 15 set = positive, clear = negative."""
+    return raw - 0x8000 if raw & 0x8000 else -raw
 
 
 class FrameDecoder:
@@ -36,9 +58,10 @@ class FrameDecoder:
         """
         contacts: List[RadarContact] = []
 
-        # Check for JSON lines if newline is present
-        if b"\n" in buffer:
-            newline_idx = buffer.find(b"\n")
+        # JSON line only if a newline comes before any binary header: 0x0A is also a valid byte inside LD2450 frames
+        newline_idx = buffer.find(b"\n")
+        header_idx = buffer.find(cls.LD2450_HEADER)
+        if newline_idx != -1 and (header_idx == -1 or newline_idx < header_idx):
             line_bytes = bytes(buffer[:newline_idx]).strip()
             del buffer[:newline_idx + 1]
             try:
@@ -81,7 +104,8 @@ class FrameDecoder:
 
         for slot in range(3):
             offset = 4 + slot * 8
-            x_mm, y_mm, speed_cms, _ = struct.unpack_from("<hhhH", frame, offset)
+            raw_x, raw_y, raw_speed, _ = struct.unpack_from("<HHHH", frame, offset)
+            x_mm, y_mm, speed_cms = _ld2450_signed(raw_x), _ld2450_signed(raw_y), _ld2450_signed(raw_speed)
 
             # Ignore empty/inactive slots
             if x_mm == 0 and y_mm == 0 and speed_cms == 0:
@@ -129,6 +153,7 @@ class FrameDecoder:
                         distance=dist,
                         angle_deg=angle,
                         timestamp=now,
+                        threat_zone=t.get("threat_zone"),
                     )
                 )
         except (json.JSONDecodeError, ValueError, KeyError):

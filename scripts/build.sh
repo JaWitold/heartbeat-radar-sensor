@@ -14,8 +14,6 @@ error()   { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; }
 
 # Default orthogonal targets
 BOARD="esp32dev"
-SENSORS_RAW="ld2450"
-DISPLAYS_RAW="st7789"
 
 show_help() {
     cat <<EOF
@@ -26,13 +24,14 @@ Build firmware with composable multi-sensor and multi-display targets.
 Options:
   -b, --board BOARD             Target board (default: esp32dev)
   -s, --sensor, --sensors LIST  Sensor(s), comma-separated or repeated:
-                                  ld2450 | rd03d | rcwl0516 | mock
-                                  Example: --sensors ld2450,rd03d (Fusion mode)
+                                  ld2450 (only one implemented so far)
                                   Default: ld2450
   -d, --display, --displays LIST Display/output sinks, comma-separated or repeated:
-                                  st7789 | ili9341 | ssd1306 | serial | ble | mock
-                                  Example: --displays st7789,serial (Dual output)
-                                  Default: st7789
+                                  serial | st7789 (TFT renderer is still a stub)
+                                  Default: serial
+  -f, --flag, --define MACRO    Extra preprocessor definition, repeated:
+                                  Example: -f RADAR_DANGER_DISTANCE_M=2.0f
+                                  Example: -f SERIAL_BAUD_RATE=921600
   -h, --help                    Show this help message
 EOF
 }
@@ -40,6 +39,7 @@ EOF
 # Collect sensor and display arguments (supports repeated flags or comma-separated lists)
 COLLECTED_SENSORS=()
 COLLECTED_DISPLAYS=()
+COLLECTED_DEFINES=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -61,6 +61,10 @@ while [[ $# -gt 0 ]]; do
             done
             shift 2
             ;;
+        -f|--flag|--define)
+            COLLECTED_DEFINES+=("$2")
+            shift 2
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -78,8 +82,16 @@ if [ ${#COLLECTED_SENSORS[@]} -eq 0 ]; then
     COLLECTED_SENSORS=("ld2450")
 fi
 if [ ${#COLLECTED_DISPLAYS[@]} -eq 0 ]; then
-    COLLECTED_DISPLAYS=("st7789")
+    COLLECTED_DISPLAYS=("serial")
 fi
+
+# Reject names main.cpp has no adapter for, instead of silently building something else
+for s in "${COLLECTED_SENSORS[@]}"; do
+    case "$s" in ld2450) ;; *) error "Unsupported sensor: $s"; exit 1 ;; esac
+done
+for d in "${COLLECTED_DISPLAYS[@]}"; do
+    case "$d" in serial|st7789) ;; *) error "Unsupported display: $d"; exit 1 ;; esac
+done
 
 # Build preprocessor flags
 BUILD_FLAGS=""
@@ -104,6 +116,13 @@ done
 if [ ${#COLLECTED_DISPLAYS[@]} -gt 1 ]; then
     BUILD_FLAGS+="-DUSE_COMPOSITE_DISPLAY_BROADCAST=1 "
     info "             -> Multi-display broadcasting active (${#COLLECTED_DISPLAYS[@]} sinks)"
+fi
+
+if [ ${#COLLECTED_DEFINES[@]} -gt 0 ]; then
+    info "  Define(s):  ${COLLECTED_DEFINES[*]}"
+    for def in "${COLLECTED_DEFINES[@]}"; do
+        BUILD_FLAGS+="-D${def} "
+    done
 fi
 
 export PLATFORMIO_BUILD_FLAGS="${BUILD_FLAGS}"

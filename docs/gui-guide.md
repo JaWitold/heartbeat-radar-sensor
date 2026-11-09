@@ -68,3 +68,28 @@ In **Terminal 2**, launch the GUI pointing to the virtual device:
 ./scripts/gui.sh --port /dev/pts/X --raw
 ```
 The GUI will render the simulated patrolling targets in real-time!
+
+---
+
+## 🌐 Alternative: Tactical Web HUD (Browser Display)
+
+If you prefer viewing the radar in a web browser, on a mobile device/tablet, or on a headless server without Tkinter/X11:
+
+```bash
+# Standalone Demo Mode (opens at http://localhost:8088):
+./scripts/web.sh --demo
+
+# Live physical radar sensor feed:
+./scripts/web.sh --serial /dev/ttyUSB0 --raw
+
+# Live ESP32 telemetry feed:
+./scripts/web.sh --serial /dev/ttyUSB0 --baud 115200
+
+# Full tmux simulation with Web HUD:
+./scripts/sim-tmux.sh --web
+```
+
+### Web HUD Highlights:
+- **Zero Build / Vanilla Web Tech:** Powered by pure HTML5 Canvas and WebSocket (`/ws`) at 60 FPS.
+- **LAN & Mobile Ready:** Open `http://<your-ip>:8088` on any phone or tablet on the same Wi-Fi.
+- **Audio Alerts:** Toggleable synthesized Web Audio proximity warning beeps when contacts enter $<1.5$m.

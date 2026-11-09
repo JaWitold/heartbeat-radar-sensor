@@ -20,6 +20,6 @@ error()   { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; }
 # --- Main ---
 info "Auto-formatting source files..."
 
-docker compose -f "${PROJECT_ROOT}/docker/docker-compose.yml" run --rm format
+docker compose -f "${PROJECT_ROOT}/docker/docker-compose.yml" run --rm --user "$(id -u):$(id -g)" format
 
 success "All source files formatted."

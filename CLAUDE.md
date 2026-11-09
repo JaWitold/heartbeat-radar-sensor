@@ -7,15 +7,18 @@ Built for ESP32 with the HLK-LD2450 24GHz FMCW mmWave radar and ST7789 240x320 S
 
 ## 🏛️ Architecture: Hexagonal (Ports & Adapters)
 
-- **Strict Boundary:** The Core Domain (`src/core/`) must remain pure C++17 with **ZERO** platform or hardware dependencies (`<Arduino.h>`, ESP-IDF, FreeRTOS, or driver headers are forbidden in `src/core/`).
+- **Strict Boundary:** The Core Domain (`src/core/`) must remain pure C++17 with **ZERO** platform or hardware dependencies (`<Arduino.h>`, ESP-IDF, FreeRTOS, or driver headers are forbidden in `src/core/`). Physical capabilities are described via pure value types (`SensorSpecs`).
 - **Ports (`src/ports/`):** Abstract interfaces with pure virtual methods:
-  - `ISensor`: Scans and returns `std::vector<TargetData>` (X, Y coordinates, speed, distance).
+  - `ISensor`: Scans and returns `std::vector<TargetData>`, reports `specs()`, and health `is_connected()`.
   - `IDisplay`: HUD rendering, radar sweep drawing, blip plotting, alert borders.
   - `ITimer`: System timing and delays (allows synthetic time acceleration in unit tests).
-  - `IBuzzer`: Optional proximity audio alert contract.
-- **Adapters (`src/adapters/`):** Hardware implementations:
-  - `LD2450Adapter`: High-speed UART2 binary protocol parser (256000 baud).
+  - `IBuzzer`: Proximity audio alert contract.
+  - `IThreatEvaluator`: Evaluates target vectors into `ThreatAssessment`.
+- **Adapters (`src/adapters/`):** Subsystem implementations (`sensors`, `displays`, `timers`, `buzzers`):
+  - `LD2450Adapter`: High-speed UART2 binary protocol parser (256000 baud) owning its `SPECS`.
+  - `SerialDisplayAdapter`: Serial JSON telemetry output for desktop/web HUD.
   - `ST7789Adapter`: SPI display rendering via `TFT_eSPI`.
+  - `ESP32BuzzerAdapter`: PWM audio alert driver.
   - `ESP32TimerAdapter`: Hardware timer implementation.
 - **Mocks (`test_native/mocks/`):** Test doubles implementing ports for deterministic host-side testing.
 
@@ -27,10 +30,11 @@ All build, test, and QA operations run inside isolated Docker containers:
 
 ```bash
 # Build firmware binary (orthogonal options: --board, --sensors, --displays)
-./scripts/build.sh
-./scripts/build.sh --sensors ld2450,rd03d      # Multi-sensor fusion
-./scripts/build.sh --displays st7789,serial    # Dual output: TFT screen + PC Serial Telemetry
-./scripts/build.sh --displays st7789,ili9341   # Dual TFT display support
+./scripts/build.sh                             # ld2450 + serial telemetry (default)
+./scripts/build.sh --displays st7789           # TFT (renderer still a stub)
+./scripts/build.sh -f RADAR_DANGER_DISTANCE_M=2.0f   # Override alert threshold
+# Planned (rejected until RD-03D adapter and CompositeSensor/CompositeDisplay exist):
+#   --sensors ld2450,rd03d   --displays st7789,serial
 
 # Run swappable radar sensor simulator (USB-UART, PTY, or socket via uv)
 ./scripts/sim-radar.sh --sensor ld2450 --scenario patrol --port /dev/ttyUSB0
@@ -40,6 +44,15 @@ All build, test, and QA operations run inside isolated Docker containers:
 ./scripts/gui.sh --demo                         # Standalone demo mode
 ./scripts/gui.sh --port /dev/ttyUSB0 --raw      # Live raw radar feed @ 256k
 ./scripts/gui.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 115k
+
+# Run tactical web radar HUD (FastAPI + HTML5 Canvas via uv)
+./scripts/web.sh --demo                         # Standalone web demo on http://127.0.0.1:8899
+./scripts/web.sh --port /dev/ttyUSB0 --raw      # Live raw radar feed @ 256k
+./scripts/web.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 115k
+
+# Run all-in-one synchronized sensor simulator + HUD (tmux)
+./scripts/sim-tmux.sh                           # Simulator + Desktop HUD
+./scripts/sim-tmux.sh --web                     # Simulator + Web HUD
 
 # Run native Catch2 unit tests (host-side in Docker)
 ./scripts/test-native.sh
@@ -100,7 +113,9 @@ All build, test, and QA operations run inside isolated Docker containers:
   - Functions / Methods: `snake_case()` (`scan()`, `active_target_count()`)
   - Variables / Parameters: `snake_case`
   - Private Member Variables: trailing underscore `snake_case_` (`sweep_angle_`, `sensor_`)
-  - Constants / Enums: `UPPER_SNAKE_CASE` (`MAX_TARGETS`, `BAUD_RATE`)
+  - Constants (`constexpr`, global/static): `UPPER_SNAKE_CASE` (`MAX_TARGETS`, `BAUD_RATE`)
+  - Enum values: `PascalCase` (`ThreatLevel::Danger`)
+  - `const` locals and parameters: plain `snake_case`
 
 ---
 
