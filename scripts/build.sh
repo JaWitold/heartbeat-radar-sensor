@@ -146,7 +146,7 @@ fi
 export PLATFORMIO_BUILD_FLAGS="${BUILD_FLAGS}"
 
 docker compose -f "${PROJECT_ROOT}/docker/docker-compose.yml" run --rm \
-    -e PLATFORMIO_BUILD_FLAGS="${PLATFORMIO_BUILD_FLAGS}" \
+    -e PLATFORMIO_BUILD_FLAGS \
     build pio run -e "$BOARD"
 
 success "Firmware build complete."
