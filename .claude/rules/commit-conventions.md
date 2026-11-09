@@ -19,3 +19,4 @@
    - `[Chore]` — Build system, Docker, CI, or dependency updates
    - `[Perf]` — Performance optimization
 3. **Linear History:** All feature branches must be rebased onto `main` and squash-merged.
+4. **Push only, no `gh`:** Finish by rebasing onto `origin/main` and `git push origin <branch>`. Never use the GitHub CLI (`gh`) and never install it; the user opens pull requests on GitHub.
