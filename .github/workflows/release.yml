@@ -22,16 +22,8 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Build dev image
-        run: docker build -f docker/Dockerfile.dev -t hrs-dev .
-
       - name: Build firmware
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            hrs-dev \
-            bash -c "pio run"
+        run: ./scripts/build.sh
 
       - name: Prepare release assets
         run: |

@@ -17,11 +17,17 @@ Checks: >
   performance-*,
   readability-*,
   -readability-magic-numbers,
-  -readability-identifier-length
+  -readability-identifier-length,
+  -readability-simplify-boolean-expr,
+  -readability-avoid-const-params-in-decls,
+  -readability-uppercase-literal-suffix,
+  -readability-redundant-member-init,
+  -cppcoreguidelines-avoid-const-or-ref-data-members
+# Disabled above: they contradict house style (Yoda `true == x`, const params,
+# reference-injected dependencies, `1.5f` literals, brace-init of every member).
 
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 HeaderFilterRegex: 'src/.*'
-AnalyzeTemporaryDtors: false
 FormatStyle: file
 
 CheckOptions:
@@ -31,11 +37,23 @@ CheckOptions:
     value: lower_case
   - key: readability-identifier-naming.VariableCase
     value: lower_case
-  - key: readability-identifier-naming.ConstantCase
+  - key: readability-identifier-naming.ConstexprVariableCase
     value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.StaticConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.LocalConstantCase
+    value: lower_case
+  - key: readability-identifier-naming.ConstantParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
   - key: readability-identifier-naming.AbstractClassPrefix
     value: I
   - key: readability-identifier-naming.PrivateMemberSuffix
     value: _
   - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: true

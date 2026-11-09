@@ -5,7 +5,7 @@ Sidebar HUD: Connection controls, target status table, and telemetry stats.
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Dict, List
-from .protocol_decoders import RadarContact
+from .protocol_decoders import RadarContact, zone_of
 
 
 class SidebarHUD(tk.Frame):
@@ -181,12 +181,7 @@ class SidebarHUD(tk.Frame):
             self.tree.delete(item)
 
         for c in contacts:
-            if c.distance < 1.5:
-                zone = "NEAR"
-            elif c.distance < 3.5:
-                zone = "MID"
-            else:
-                zone = "FAR"
+            zone = {"Danger": "NEAR", "Caution": "MID"}.get(zone_of(c), "FAR")
 
             self.tree.insert(
                 "",

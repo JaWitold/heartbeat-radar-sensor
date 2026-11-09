@@ -55,8 +55,8 @@ cd heartbeat-radar-sensor
 # Compile firmware (Docker)
 ./scripts/build.sh
 
-# Or select composable targets (fusion / multi-display)
-./scripts/build.sh --sensors ld2450,rd03d --displays st7789,serial
+# Or pick the display (serial is default; st7789 renderer is still a stub)
+./scripts/build.sh --displays st7789
 ```
 
 ### Test & Simulate

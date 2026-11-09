@@ -17,6 +17,12 @@ typedef struct
     uint32_t step;
 } chip_state_t;
 
+// LD2450 signed fields: bit 15 set = positive, clear = negative; magnitude in bits 0..14.
+static uint16_t sign_magnitude(int16_t value)
+{
+    return value > 0 ? (uint16_t)(value | 0x8000) : (uint16_t)(-value);
+}
+
 static void on_timer_tick(void *user_data)
 {
     chip_state_t *chip = (chip_state_t *)user_data;
@@ -37,14 +43,17 @@ static void on_timer_tick(void *user_data)
     int16_t y_mm = (int16_t)(1500 + (chip->step > 50 ? (100 - chip->step) : chip->step) * 60);
     int16_t speed_cms = 30;
     uint16_t dist_res = 200;
+    const uint16_t x_raw = sign_magnitude(x_mm);
+    const uint16_t y_raw = sign_magnitude(y_mm);
+    const uint16_t speed_raw = sign_magnitude(speed_cms);
 
     // Target 1 (Bytes 4..11)
-    frame[4] = (uint8_t)(x_mm & 0xFF);
-    frame[5] = (uint8_t)((x_mm >> 8) & 0xFF);
-    frame[6] = (uint8_t)(y_mm & 0xFF);
-    frame[7] = (uint8_t)((y_mm >> 8) & 0xFF);
-    frame[8] = (uint8_t)(speed_cms & 0xFF);
-    frame[9] = (uint8_t)((speed_cms >> 8) & 0xFF);
+    frame[4] = (uint8_t)(x_raw & 0xFF);
+    frame[5] = (uint8_t)(x_raw >> 8);
+    frame[6] = (uint8_t)(y_raw & 0xFF);
+    frame[7] = (uint8_t)(y_raw >> 8);
+    frame[8] = (uint8_t)(speed_raw & 0xFF);
+    frame[9] = (uint8_t)(speed_raw >> 8);
     frame[10] = (uint8_t)(dist_res & 0xFF);
     frame[11] = (uint8_t)((dist_res >> 8) & 0xFF);
 

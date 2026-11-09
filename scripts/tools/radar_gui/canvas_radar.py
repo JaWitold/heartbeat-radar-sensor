@@ -6,7 +6,7 @@ import math
 import time
 import tkinter as tk
 from typing import Dict, List
-from .protocol_decoders import RadarContact
+from .protocol_decoders import RadarContact, zone_of
 
 
 class RadarCanvas(tk.Canvas):
@@ -131,12 +131,9 @@ class RadarCanvas(tk.Canvas):
             px, py = self._meters_to_pixels(contact.x, contact.y)
 
             # Determine threat color by zone
-            if contact.distance < 1.5:
-                color = self.COLOR_BLIP_NEAR
-            elif contact.distance < 3.5:
-                color = self.COLOR_BLIP_MID
-            else:
-                color = self.COLOR_BLIP_FAR
+            color = {
+                "Danger": self.COLOR_BLIP_NEAR, "Caution": self.COLOR_BLIP_MID
+            }.get(zone_of(contact), self.COLOR_BLIP_FAR)
 
             # Blip size and fading opacity proxy
             radius = 6 if age < 0.5 else 4
@@ -165,7 +162,7 @@ class RadarCanvas(tk.Canvas):
 
     def _draw_alert_perimeter(self) -> None:
         """Flash warning border if any contact is in near/danger zone (<1.5m)."""
-        has_near_threat = any(c.distance < 1.5 for c in self.contacts.values())
+        has_near_threat = any(zone_of(c) == "Danger" for c in self.contacts.values())
         if has_near_threat and int(time.monotonic() * 4) % 2 == 0:
             self.create_rectangle(
                 4, 4, self.size - 4, self.size - 4,

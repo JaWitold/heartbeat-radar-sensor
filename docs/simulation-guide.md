@@ -51,7 +51,27 @@ Point any test harness or serial monitor to `/dev/pts/X` to receive real radar p
 
 ---
 
-## 4. Wokwi Virtual Microcontroller & Display Emulation
+## 4. All-in-One tmux Simulation (Sensor + Virtual PTY + Tactical HUD)
+Run both the radar sensor simulator and the Tactical Desktop HUD simultaneously in a split `tmux` session with a single command:
+
+```bash
+# Launch multi-target simulation (3 crossing targets):
+./scripts/sim-tmux.sh
+
+# Or with a patrolling target:
+./scripts/sim-tmux.sh --scenario patrol
+
+# Stop the simulation session:
+./scripts/sim-tmux.sh --kill
+```
+
+- **Pane 0 (Left):** Runs `sim-radar` streaming 30-byte FMCW radar frames into a dynamically allocated virtual PTY.
+- **Pane 1 (Right):** Runs `radar-gui` connected to the virtual PTY, rendering the 60 FPS CRT phosphor green HUD.
+- **Keybindings:** Press `Ctrl+b` then `d` to detach. Re-attach at any time with `tmux attach -t hrs-sim`.
+
+---
+
+## 5. Wokwi Virtual Microcontroller & Display Emulation
 Simulate the full ESP32 microcontroller, FreeRTOS, SPI display, and UART radar sensor:
 1. Build firmware:
    ```bash

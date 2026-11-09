@@ -67,6 +67,12 @@ def parse_args():
         default=0,
         help="Override sensor default baud rate",
     )
+    parser.add_argument(
+        "--pty-file",
+        type=str,
+        default="/tmp/hrs_radar_pty",
+        help="File path to store virtual PTY slave node (default: /tmp/hrs_radar_pty)",
+    )
 
     return parser.parse_args()
 
@@ -86,7 +92,7 @@ def main():
         sink = SocketSink(port=args.socket)
     else:
         # Default to PTY on Linux
-        sink = PtySink()
+        sink = PtySink(pty_file=args.pty_file)
 
     sink.open()
 

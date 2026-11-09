@@ -51,21 +51,10 @@ services:
     command: >
       bash -c "
         echo '=== Running cppcheck ===' &&
-        cppcheck
-          --enable=all
-          --suppress=missingIncludeSystem
-          --inline-suppr
-          --error-exitcode=1
-          --std=c++17
-          -I src/
-          src/ &&
+        cppcheck --enable=all --suppress=toomanyconfigs --suppress=unusedFunction --suppress=missingIncludeSystem --suppress=unmatchedSuppression --inline-suppr --error-exitcode=1 --std=c++17 -I src/ -I test_native/ -I test_native/mocks src/ test_native/ &&
         echo '=== cppcheck passed ===' &&
         echo '=== Running clang-tidy ===' &&
-        find src/ -name '*.cpp' -o -name '*.h' |
-          xargs clang-tidy
-            --warnings-as-errors='*'
-            -p /workspace/build
-            -- -std=c++17 2>/dev/null || true &&
+        run-clang-tidy-18 -p build -quiet '/workspace/src/' &&
         echo '=== clang-tidy complete ==='
       "
 

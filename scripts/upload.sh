@@ -55,6 +55,11 @@ fi
 info "Uploading firmware to ${PORT}..."
 
 cd "$PROJECT_ROOT"
-pio run -t upload --upload-port "$PORT"
+if [[ ! -f .pio/build/esp32dev/firmware.bin ]]; then
+    error "No firmware found. Build first with ./scripts/build.sh [options]."
+    exit 1
+fi
+# nobuild: flash exactly what build.sh produced; a rebuild here would drop its ENABLE_* flags
+pio run -t nobuild -t upload --upload-port "$PORT"
 
 success "Firmware uploaded to ${PORT}."

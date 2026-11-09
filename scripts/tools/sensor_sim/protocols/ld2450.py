@@ -9,6 +9,12 @@ from typing import List
 from ..interfaces import ISensorProtocol, SimulatedTarget
 
 
+def _sign_magnitude(value: int) -> int:
+    """LD2450 signed fields: bit 15 set = positive, clear = negative; magnitude in bits 0..14."""
+    magnitude = min(abs(value), 0x7FFF)
+    return magnitude | 0x8000 if value > 0 else magnitude
+
+
 class LD2450Encoder(ISensorProtocol):
     """Encodes targets into 30-byte HLK-LD2450 periodic reporting frames."""
 
@@ -42,13 +48,11 @@ class LD2450Encoder(ISensorProtocol):
                 # Distance resolution in mm (uint16)
                 dist_res_mm = int(round(target.distance_resolution * 1000.0))
 
-                # Clamp to 16-bit signed/unsigned ranges
-                x_mm = max(-32768, min(32767, x_mm))
-                y_mm = max(-32768, min(32767, y_mm))
-                speed_cms = max(-32768, min(32767, speed_cms))
                 dist_res_mm = max(0, min(65535, dist_res_mm))
 
-                payload.extend(struct.pack("<hhhH", x_mm, y_mm, speed_cms, dist_res_mm))
+                payload.extend(struct.pack(
+                    "<HHHH", _sign_magnitude(x_mm), _sign_magnitude(y_mm), _sign_magnitude(speed_cms), dist_res_mm
+                ))
             else:
                 # 8 bytes of zeroes for empty target slot
                 payload.extend(b"\x00" * 8)

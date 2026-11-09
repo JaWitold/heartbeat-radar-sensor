@@ -33,10 +33,10 @@ run_suite() {
 
     if bash "$script"; then
         success "$name — PASSED"
-        ((PASSED++))
+        PASSED=$((PASSED + 1))
     else
         error "$name — FAILED"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 }
 
@@ -45,8 +45,9 @@ info "Running all test suites..."
 
 run_suite "Native Unit Tests (Catch2)" "${SCRIPT_DIR}/test-native.sh"
 
-# Future: add more suites here
-# run_suite "Integration Tests" "${SCRIPT_DIR}/test-integration.sh"
+if command -v uv &>/dev/null && [ -f "${PROJECT_ROOT}/scripts/tools/pyproject.toml" ]; then
+    run_suite "Python Simulation & HUD Tests" "${SCRIPT_DIR}/test-python.sh"
+fi
 
 # --- Summary ---
 header "Test Summary"

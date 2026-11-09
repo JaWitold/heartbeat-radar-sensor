@@ -37,24 +37,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build QA image
-        run: docker build -f docker/Dockerfile.qa -t hrs-qa .
-
-      - name: Run clang-tidy
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            hrs-qa \
-            bash -c "find src/ -name '*.cpp' -o -name '*.h' | xargs clang-tidy -p build --warnings-as-errors='*'"
-
-      - name: Run cppcheck
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            hrs-qa \
-            bash -c "cppcheck --enable=all --suppress=missingIncludeSystem --error-exitcode=1 --std=c++17 src/"
+      - name: Run cppcheck + clang-tidy (same as ./scripts/lint.sh)
+        run: ./scripts/lint.sh
 
   test-native:
     name: Native Tests
@@ -88,16 +72,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build dev image
-        run: docker build -f docker/Dockerfile.dev -t hrs-dev .
-
       - name: Build firmware
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            hrs-dev \
-            bash -c "pio run"
+        run: ./scripts/build.sh
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
@@ -124,7 +100,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             hrs-qa \
-            bash -c "doxygen Doxyfile"
+            bash -c "doxygen docs/Doxyfile"
 
       - name: Upload documentation artifact
         uses: actions/upload-artifact@v4
