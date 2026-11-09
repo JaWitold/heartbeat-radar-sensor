@@ -33,7 +33,8 @@ Options:
                                   Default: serial
   -f, --flag, --define MACRO    Extra preprocessor definition, repeated:
                                   Example: -f RADAR_DANGER_DISTANCE_M=2.0f
-                                  Example: -f SERIAL_BAUD_RATE=921600
+                                  Example: -f WIFI_TCP_PORT=4000
+                                  (adapter tunables only; board wiring lives in platformio.ini)
   -h, --help                    Show this help message
 EOF
 }

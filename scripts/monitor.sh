@@ -27,7 +27,7 @@ error()   { echo -e "\033[1;31m[ERROR]\033[0m $*" >&2; }
 
 # --- Configuration ---
 PORT="${1:-/dev/ttyUSB0}"
-BAUD=115200
+BAUD=$(sed -n 's/^monitor_speed *= *//p' "${PROJECT_ROOT}/platformio.ini" | head -1)
 
 # --- Check for PlatformIO ---
 if ! command -v pio &>/dev/null; then
