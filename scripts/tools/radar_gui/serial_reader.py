@@ -12,12 +12,15 @@ from .protocol_decoders import FrameDecoder, RadarContact
 
 
 def open_serial(port: str, baud: int, timeout: float):
-    """Opens a UART or PTY; PTYs get 115200 because they reject non-standard rates like 256000."""
+    """Opens a UART, PTY or pyserial URL (e.g. socket://heartbeat-radar.local:3333).
+
+    PTYs get 115200 because they reject non-standard rates like 256000; sockets ignore baud.
+    """
     import serial
 
     if port.startswith("/dev/pts/"):
         baud = 115200
-    return serial.Serial(port=port, baudrate=baud, timeout=timeout)
+    return serial.serial_for_url(port, baudrate=baud, timeout=timeout)
 
 
 def print_serial_error(tag: str, port: str, exc: Exception) -> None:

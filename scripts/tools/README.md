@@ -22,6 +22,10 @@ uv run radar-gui --demo
 # Connect GUI to real hardware or PTY
 uv run radar-gui --port /dev/ttyUSB0 --baud 115200
 
+# Any pyserial URL works too: ESP32 WiFi display or simulator --socket
+uv run radar-gui --port socket://heartbeat-radar.local:3333
+uv run sim-radar --sensor ld2450 --scenario multi --socket 9999   # then --port socket://127.0.0.1:9999 --raw
+
 # Run all unit tests
 uv run pytest
 ```
