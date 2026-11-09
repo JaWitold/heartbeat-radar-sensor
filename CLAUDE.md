@@ -23,6 +23,8 @@ Built for ESP32 with the HLK-LD2450 24GHz FMCW mmWave radar and ST7789 240x320 S
   - `ESP32TimerAdapter`: Hardware timer implementation.
 - **Mocks (`test_native/mocks/`):** Test doubles implementing ports for deterministic host-side testing.
 
+- **Configuration** (`.claude/rules/adapter-config.md`): board wiring (pins, console baud) only in `platformio.ini` `[env:<board>]`; adapter tunables are `static constexpr DEFAULT_*` overridable via `./scripts/build.sh -f NAME=value`; secrets from env via `build.sh`. Only `src/main.cpp` reads config macros.
+
 ---
 
 ## 🛠️ Common Commands
