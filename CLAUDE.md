@@ -18,7 +18,7 @@ Built for ESP32 with the HLK-LD2450 24GHz FMCW mmWave radar and ST7789 240x320 S
   - `LD2450Adapter`: High-speed UART2 binary protocol parser (256000 baud) owning its `SPECS`.
   - `SerialDisplayAdapter`: Serial JSON telemetry output for desktop/web HUD.
   - `ST7789Adapter`: SPI display rendering via `TFT_eSPI`.
-  - `WifiDisplayAdapter`: same JSON telemetry over a TCP server on WiFi boards (`socket://heartbeat-radar.local:3333`).
+  - `WifiDisplayAdapter`: same JSON telemetry over a TCP server on WiFi boards (`socket://heartbeat-radar.local:3333`). One client at a time (a newer one replaces the older); for several viewers connect only `web.sh` and open it in many browsers.
   - `ESP32BuzzerAdapter`: PWM audio alert driver.
   - `ESP32TimerAdapter`: Hardware timer implementation.
 - **Mocks (`test_native/mocks/`):** Test doubles implementing ports for deterministic host-side testing.
