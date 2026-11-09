@@ -57,6 +57,9 @@ cd heartbeat-radar-sensor
 
 # Or pick the display (serial is default; st7789 renderer is still a stub)
 ./scripts/build.sh --displays st7789
+
+# Stream telemetry over WiFi (esp32dev); HUDs connect to socket://heartbeat-radar.local:3333
+WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi
 ```
 
 ### Test & Simulate

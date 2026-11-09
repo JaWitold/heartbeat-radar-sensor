@@ -20,6 +20,17 @@
 #include "adapters/displays/st7789_adapter.h"
 #endif
 
+#if defined(ENABLE_DISPLAY_WIFI)
+// WiFi board and WIFI_SSID/WIFI_PASSWORD are validated by scripts/build.sh.
+#include "adapters/displays/wifi_display_adapter.h"
+#ifndef TELEMETRY_TCP_PORT
+#define TELEMETRY_TCP_PORT hrs::adapters::displays::WifiDisplayAdapter::DEFAULT_TCP_PORT
+#endif
+#ifndef WIFI_HOSTNAME
+#define WIFI_HOSTNAME hrs::adapters::displays::WifiDisplayAdapter::DEFAULT_HOSTNAME
+#endif
+#endif
+
 #if defined(ENABLE_BUZZER)
 #include "adapters/buzzers/esp32_buzzer_adapter.h"
 #endif
@@ -63,6 +74,9 @@ hrs::adapters::displays::SerialDisplayAdapter
     display_adapter(Serial, SPECS.danger_distance_m, SPECS.caution_distance_m);
 #elif defined(ENABLE_DISPLAY_ST7789)
 hrs::adapters::displays::ST7789Adapter display_adapter;
+#elif defined(ENABLE_DISPLAY_WIFI)
+hrs::adapters::displays::WifiDisplayAdapter display_adapter(
+    WIFI_SSID, WIFI_PASSWORD, TELEMETRY_TCP_PORT, WIFI_HOSTNAME, SPECS.danger_distance_m, SPECS.caution_distance_m);
 #else
 #error "No display selected. Build with ./scripts/build.sh (defaults: --sensors ld2450 --displays serial)"
 #endif

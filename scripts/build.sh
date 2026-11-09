@@ -28,6 +28,8 @@ Options:
                                   Default: ld2450
   -d, --display, --displays LIST Display/output sinks, comma-separated or repeated:
                                   serial | st7789 (TFT renderer is still a stub)
+                                  wifi (TCP telemetry; WiFi boards only; needs
+                                        env WIFI_SSID and WIFI_PASSWORD)
                                   Default: serial
   -f, --flag, --define MACRO    Extra preprocessor definition, repeated:
                                   Example: -f RADAR_DANGER_DISTANCE_M=2.0f
@@ -90,7 +92,7 @@ for s in "${COLLECTED_SENSORS[@]}"; do
     case "$s" in ld2450) ;; *) error "Unsupported sensor: $s"; exit 1 ;; esac
 done
 for d in "${COLLECTED_DISPLAYS[@]}"; do
-    case "$d" in serial|st7789) ;; *) error "Unsupported display: $d"; exit 1 ;; esac
+    case "$d" in serial|st7789|wifi) ;; *) error "Unsupported display: $d"; exit 1 ;; esac
 done
 
 # Build preprocessor flags
@@ -116,6 +118,21 @@ done
 if [ ${#COLLECTED_DISPLAYS[@]} -gt 1 ]; then
     BUILD_FLAGS+="-DUSE_COMPOSITE_DISPLAY_BROADCAST=1 "
     info "             -> Multi-display broadcasting active (${#COLLECTED_DISPLAYS[@]} sinks)"
+fi
+
+if [[ " ${COLLECTED_DISPLAYS[*]} " == *" wifi "* ]]; then
+    case "$BOARD" in esp32dev) ;; *) error "Display 'wifi' needs a WiFi-capable board, got: $BOARD"; exit 1 ;; esac
+    if [ -z "${WIFI_SSID:-}" ] || [ -z "${WIFI_PASSWORD:-}" ]; then
+        error "Display 'wifi' needs WIFI_SSID and WIFI_PASSWORD env vars (kept out of git and logs)"
+        exit 1
+    fi
+    if [[ "${WIFI_SSID}${WIFI_PASSWORD}" == *[\'\"\\]* ]]; then
+        error "WIFI_SSID/WIFI_PASSWORD must not contain quotes or backslashes"
+        exit 1
+    fi
+    # Single quotes keep spaces intact when PlatformIO splits PLATFORMIO_BUILD_FLAGS.
+    BUILD_FLAGS+="'-DWIFI_SSID=\"${WIFI_SSID}\"' '-DWIFI_PASSWORD=\"${WIFI_PASSWORD}\"' "
+    info "  WiFi:       credentials from env (not printed)"
 fi
 
 if [ ${#COLLECTED_DEFINES[@]} -gt 0 ]; then

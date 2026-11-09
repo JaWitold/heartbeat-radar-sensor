@@ -1,5 +1,10 @@
 #include "st7789_adapter.h"
 
+#include "core/target_data.h"
+#include "core/threat_assessment.h"
+
+#include <vector>
+
 namespace hrs::adapters::displays
 {
 

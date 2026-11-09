@@ -8,7 +8,7 @@
 2. **Axis Separation:**
    - **Board Axis:** Defines the physical microcontroller platform, platform toolchain, system clock, and default pin mappings (`esp32dev`, `native`).
    - **Sensor Axis:** Implements the pure virtual interface `ISensor`. Any sensor adapter (`LD2450Adapter`, `RD03DAdapter`, `RCWL0516TriangulationAdapter`, `MockSensor`) must be swappable via dependency injection.
-   - **Display Axis:** Implements the pure virtual interface `IDisplay`. Any display adapter (`SerialDisplayAdapter`, `ST7789Adapter`, `ILI9341Adapter`, `MockDisplay`) must be swappable via dependency injection.
+   - **Display Axis:** Implements the pure virtual interface `IDisplay`. Any display adapter (`SerialDisplayAdapter`, `WifiDisplayAdapter`, `ST7789Adapter`, `ILI9341Adapter`, `MockDisplay`) must be swappable via dependency injection.
 
 3. **Factory & Composition Root:**
    - Adapters are instantiated only at the composition root (`main.cpp` or test fixtures) through orthogonal factory functions or direct dependency injection.

@@ -18,6 +18,7 @@ Built for ESP32 with the HLK-LD2450 24GHz FMCW mmWave radar and ST7789 240x320 S
   - `LD2450Adapter`: High-speed UART2 binary protocol parser (256000 baud) owning its `SPECS`.
   - `SerialDisplayAdapter`: Serial JSON telemetry output for desktop/web HUD.
   - `ST7789Adapter`: SPI display rendering via `TFT_eSPI`.
+  - `WifiDisplayAdapter`: same JSON telemetry over a TCP server on WiFi boards (`socket://heartbeat-radar.local:3333`).
   - `ESP32BuzzerAdapter`: PWM audio alert driver.
   - `ESP32TimerAdapter`: Hardware timer implementation.
 - **Mocks (`test_native/mocks/`):** Test doubles implementing ports for deterministic host-side testing.
@@ -32,6 +33,7 @@ All build, test, and QA operations run inside isolated Docker containers:
 # Build firmware binary (orthogonal options: --board, --sensors, --displays)
 ./scripts/build.sh                             # ld2450 + serial telemetry (default)
 ./scripts/build.sh --displays st7789           # TFT (renderer still a stub)
+WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telemetry (esp32dev; creds from env only)
 ./scripts/build.sh -f RADAR_DANGER_DISTANCE_M=2.0f   # Override alert threshold
 # Planned (rejected until RD-03D adapter and CompositeSensor/CompositeDisplay exist):
 #   --sensors ld2450,rd03d   --displays st7789,serial
@@ -44,11 +46,13 @@ All build, test, and QA operations run inside isolated Docker containers:
 ./scripts/gui.sh --demo                         # Standalone demo mode
 ./scripts/gui.sh --port /dev/ttyUSB0 --raw      # Live raw radar feed @ 256k
 ./scripts/gui.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 115k
+./scripts/gui.sh --port socket://heartbeat-radar.local:3333   # ESP32 WiFi telemetry (or simulator --socket)
 
 # Run tactical web radar HUD (FastAPI + HTML5 Canvas via uv)
 ./scripts/web.sh --demo                         # Standalone web demo on http://127.0.0.1:8899
-./scripts/web.sh --port /dev/ttyUSB0 --raw      # Live raw radar feed @ 256k
-./scripts/web.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 115k
+./scripts/web.sh --serial /dev/ttyUSB0 --raw    # Live raw radar feed @ 256k
+./scripts/web.sh --serial /dev/ttyUSB0          # ESP32 telemetry feed @ 115k
+./scripts/web.sh --serial socket://heartbeat-radar.local:3333 # ESP32 WiFi telemetry (or simulator --socket)
 
 # Run all-in-one synchronized sensor simulator + HUD (tmux)
 ./scripts/sim-tmux.sh                           # Simulator + Desktop HUD

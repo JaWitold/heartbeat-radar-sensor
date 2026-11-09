@@ -20,6 +20,7 @@ include_directories(src)
 file(GLOB_RECURSE CORE_SOURCES
     "src/core/*.cpp"
     "src/adapters/buzzers/*.cpp"
+    "src/adapters/displays/*.cpp"
     "src/adapters/sensors/*.cpp"
 )
 if(CORE_SOURCES)
