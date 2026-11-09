@@ -20,9 +20,8 @@ namespace hrs::adapters::displays
 class WifiDisplayAdapter : public ports::IDisplay
 {
 public:
-    static constexpr uint16_t DEFAULT_TCP_PORT        = 3333;
-    static constexpr const char* DEFAULT_HOSTNAME     = "heartbeat-radar";
-    static constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS = 10000;
+    static constexpr uint16_t DEFAULT_TCP_PORT    = 3333;
+    static constexpr const char* DEFAULT_HOSTNAME = "heartbeat-radar";
 
 #ifdef ARDUINO
     WifiDisplayAdapter(const char* ssid,

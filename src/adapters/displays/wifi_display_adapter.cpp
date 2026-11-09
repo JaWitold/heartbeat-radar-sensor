@@ -36,21 +36,10 @@ bool WifiDisplayAdapter::init()
 {
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(hostname_);
+    // Non-blocking: the radar must start at once even without WiFi; the stack keeps reconnecting.
     WiFi.begin(ssid_, password_);
-
-    // Radar must run without WiFi; the ESP32 stack keeps reconnecting in the background.
-    if (WL_CONNECTED == WiFi.waitForConnectResult(WIFI_CONNECT_TIMEOUT_MS))
-    {
-        Serial.printf("[WifiDisplay] Connected: %s -> socket://%s.local:%u (%s)\n",
-                      ssid_,
-                      hostname_,
-                      static_cast<unsigned>(port_),
-                      WiFi.localIP().toString().c_str());
-    }
-    else
-    {
-        Serial.printf("[WifiDisplay] WiFi '%s' not up yet, retrying in background\n", ssid_);
-    }
+    Serial.printf(
+        "[WifiDisplay] Joining '%s'; HUD: socket://%s.local:%u\n", ssid_, hostname_, static_cast<unsigned>(port_));
 
     MDNS.begin(hostname_);
     server_.begin();
@@ -61,6 +50,7 @@ bool WifiDisplayAdapter::init()
 void WifiDisplayAdapter::send_line(const std::string& line)
 {
     // A newer client replaces the old one, so a HUD that vanished without FIN can't lock others out.
+    // shortcut: one client at a time (GUI + web together kick each other), use web.sh to fan out to many viewers.
     if (true == server_.hasClient())
     {
         client_.stop();
