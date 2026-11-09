@@ -1,0 +1,43 @@
+# =============================================================================
+# Dockerfile.qa — Code Quality Tools
+# Heartbeat Radar Sensor (ESP32 + HLK-LD2450)
+# =============================================================================
+# Provides clang-format, clang-tidy, cppcheck, include-what-you-use (IWYU),
+# Doxygen, and Graphviz for static analysis, formatting, and documentation.
+# =============================================================================
+
+FROM ubuntu:24.04
+
+LABEL maintainer="JaWitold"
+LABEL description="Code quality, linting, formatting, and documentation tools"
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install all QA tools in a single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang-format-18 \
+        clang-tidy-18 \
+        cppcheck \
+        iwyu \
+        doxygen \
+        graphviz \
+        python3-pip \
+        git \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create version-agnostic symlinks for clang tools
+RUN ln -sf /usr/bin/clang-format-18 /usr/local/bin/clang-format \
+    && ln -sf /usr/bin/clang-tidy-18 /usr/local/bin/clang-tidy
+
+# Verify tools are accessible
+RUN clang-format --version \
+    && clang-tidy --version \
+    && cppcheck --version \
+    && doxygen --version
+
+WORKDIR /workspace
+
+# Default command: print available tool versions
+CMD ["bash", "-c", "echo 'QA tools ready.' && clang-format --version && clang-tidy --version && cppcheck --version"]

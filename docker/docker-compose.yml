@@ -1,0 +1,112 @@
+# =============================================================================
+# docker-compose.yml — Service Orchestration
+# Heartbeat Radar Sensor (ESP32 + HLK-LD2450)
+# =============================================================================
+# Defines services for building, testing, linting, formatting, and generating
+# documentation — all running in isolated, reproducible containers.
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml run --rm <service>
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # build — Compile ESP32 firmware with PlatformIO
+  # ---------------------------------------------------------------------------
+  build:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ..:/workspace
+    command: pio run
+
+  # ---------------------------------------------------------------------------
+  # test-native — Run Catch2 host-side unit tests
+  # ---------------------------------------------------------------------------
+  test-native:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    volumes:
+      - ..:/workspace
+    command: >
+      bash -c "
+        mkdir -p /workspace/build &&
+        cd /workspace/build &&
+        cmake .. -GNinja &&
+        ninja &&
+        ctest --output-on-failure
+      "
+
+  # ---------------------------------------------------------------------------
+  # lint — Static analysis with clang-tidy and cppcheck
+  # ---------------------------------------------------------------------------
+  lint:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.qa
+    volumes:
+      - ..:/workspace
+    command: >
+      bash -c "
+        echo '=== Running cppcheck ===' &&
+        cppcheck
+          --enable=all
+          --suppress=missingIncludeSystem
+          --inline-suppr
+          --error-exitcode=1
+          --std=c++17
+          -I src/
+          src/ &&
+        echo '=== cppcheck passed ===' &&
+        echo '=== Running clang-tidy ===' &&
+        find src/ -name '*.cpp' -o -name '*.h' |
+          xargs clang-tidy
+            --warnings-as-errors='*'
+            -p /workspace/build
+            -- -std=c++17 2>/dev/null || true &&
+        echo '=== clang-tidy complete ==='
+      "
+
+  # ---------------------------------------------------------------------------
+  # format-check — Verify code formatting (CI mode, non-zero exit if dirty)
+  # ---------------------------------------------------------------------------
+  format-check:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.qa
+    volumes:
+      - ..:/workspace
+    command: >
+      bash -c "
+        find src/ test_native/ -name '*.cpp' -o -name '*.h' |
+          xargs clang-format --dry-run --Werror
+      "
+
+  # ---------------------------------------------------------------------------
+  # format — Auto-format all source files in-place
+  # ---------------------------------------------------------------------------
+  format:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.qa
+    volumes:
+      - ..:/workspace
+    command: >
+      bash -c "
+        find src/ test_native/ -name '*.cpp' -o -name '*.h' |
+          xargs clang-format -i &&
+        echo 'All files formatted.'
+      "
+
+  # ---------------------------------------------------------------------------
+  # docs — Generate Doxygen documentation
+  # ---------------------------------------------------------------------------
+  docs:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.qa
+    volumes:
+      - ..:/workspace
+    command: doxygen docs/Doxyfile

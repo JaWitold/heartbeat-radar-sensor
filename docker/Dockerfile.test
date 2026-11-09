@@ -1,0 +1,46 @@
+# =============================================================================
+# Dockerfile.test — Native Test Runner
+# Heartbeat Radar Sensor (ESP32 + HLK-LD2450)
+# =============================================================================
+# Provides a GCC 13 environment with CMake, Ninja, and Catch2 v3 for running
+# native (host-side) unit tests outside the embedded target.
+# =============================================================================
+
+FROM gcc:13-bookworm
+
+LABEL maintainer="JaWitold"
+LABEL description="Native Catch2 test runner for host-side unit tests"
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        cmake \
+        ninja-build \
+        git \
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify cmake version meets minimum requirement (>= 3.22)
+RUN cmake --version
+
+# Download, build, and install Catch2 v3 system-wide
+ARG CATCH2_VERSION=v3.5.4
+RUN cd /tmp \
+    && git clone --branch ${CATCH2_VERSION} --depth 1 https://github.com/catchorg/Catch2.git \
+    && cd Catch2 \
+    && cmake -B build -S . \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCATCH_INSTALL_DOCS=OFF \
+        -DCATCH_INSTALL_EXTRAS=OFF \
+        -GNinja \
+    && cmake --build build \
+    && cmake --install build \
+    && rm -rf /tmp/Catch2
+
+WORKDIR /workspace
+
+# Default command: configure, build, and run tests
+CMD ["bash", "-c", "mkdir -p build && cd build && cmake .. -GNinja && ninja && ctest --output-on-failure"]

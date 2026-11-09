@@ -1,0 +1,59 @@
+name: "📋 Task"
+description: Create a task or work item
+title: "[Task]: "
+labels: ["type:chore"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to track a specific task or work item.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the task to be completed.
+      placeholder: Describe the task...
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Break the task down into actionable steps.
+      value: |
+        - [ ] Step 1
+        - [ ] Step 2
+        - [ ] Step 3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component does this task relate to?
+      options:
+        - core
+        - sensor
+        - display
+        - ci
+        - other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this task?
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true

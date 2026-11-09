@@ -1,0 +1,41 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  cert-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  google-*,
+  -google-build-using-namespace,
+  misc-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  performance-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length
+
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/.*'
+AnalyzeTemporaryDtors: false
+FormatStyle: file
+
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.AbstractClassPrefix
+    value: I
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: _
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true

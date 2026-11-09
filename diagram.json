@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "author": "JaWitold",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ili9341",
+      "id": "lcd",
+      "top": -160,
+      "left": 220,
+      "attrs": {}
+    },
+    {
+      "type": "chip-ld2450",
+      "id": "radar",
+      "top": 120,
+      "left": 220,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "esp:3V3", "lcd:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "lcd:GND", "black", [ "v0" ] ],
+    [ "esp:15", "lcd:CS", "green", [ "h0" ] ],
+    [ "esp:2", "lcd:D/C", "blue", [ "h0" ] ],
+    [ "esp:23", "lcd:MOSI", "orange", [ "h0" ] ],
+    [ "esp:18", "lcd:SCK", "purple", [ "h0" ] ],
+    [ "esp:4", "lcd:RESET", "brown", [ "h0" ] ],
+    [ "esp:3V3", "lcd:LED", "red", [ "v0" ] ],
+
+    [ "esp:5V", "radar:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.2", "radar:GND", "black", [ "v0" ] ],
+    [ "radar:TX", "esp:16", "yellow", [ "h0" ] ],
+    [ "esp:17", "radar:RX", "cyan", [ "h0" ] ]
+  ],
+  "dependencies": {}
+}

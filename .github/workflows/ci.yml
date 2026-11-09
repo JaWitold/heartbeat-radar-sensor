@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build QA image
+        run: docker build -f docker/Dockerfile.qa -t hrs-qa .
+
+      - name: Check formatting (clang-format)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hrs-qa \
+            bash -c "find src/ test_native/ -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror"
+
+  lint:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    needs: format-check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build QA image
+        run: docker build -f docker/Dockerfile.qa -t hrs-qa .
+
+      - name: Run clang-tidy
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hrs-qa \
+            bash -c "find src/ -name '*.cpp' -o -name '*.h' | xargs clang-tidy -p build --warnings-as-errors='*'"
+
+      - name: Run cppcheck
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hrs-qa \
+            bash -c "cppcheck --enable=all --suppress=missingIncludeSystem --error-exitcode=1 --std=c++17 src/"
+
+  test-native:
+    name: Native Tests
+    runs-on: ubuntu-latest
+    needs: format-check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build test image
+        run: docker build -f docker/Dockerfile.test -t hrs-test .
+
+      - name: Run native tests
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hrs-test \
+            bash -c "
+              mkdir -p build && cd build && \
+              cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug .. && \
+              ninja && \
+              ctest --output-on-failure --parallel $(nproc)
+            "
+
+  build-firmware:
+    name: Build Firmware
+    runs-on: ubuntu-latest
+    needs: [lint, test-native]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build dev image
+        run: docker build -f docker/Dockerfile.dev -t hrs-dev .
+
+      - name: Build firmware
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hrs-dev \
+            bash -c "pio run"
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: .pio/build/*/firmware.bin
+          retention-days: 14
+
+  docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: build-firmware
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build QA image
+        run: docker build -f docker/Dockerfile.qa -t hrs-qa .
+
+      - name: Generate Doxygen documentation
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            hrs-qa \
+            bash -c "doxygen Doxyfile"
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/html/
+          retention-days: 30

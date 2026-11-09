@@ -1,0 +1,35 @@
+# =============================================================================
+# Dockerfile.dev — PlatformIO Development Environment
+# Heartbeat Radar Sensor (ESP32 + HLK-LD2450)
+# =============================================================================
+# Provides a reproducible build environment with PlatformIO CLI pre-installed
+# and the ESP32 platform cached for faster builds.
+# =============================================================================
+
+FROM python:3.11-slim
+
+LABEL maintainer="JaWitold"
+LABEL description="PlatformIO development environment for ESP32 firmware"
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set PlatformIO core directory to a persistent, well-known location
+ENV PLATFORMIO_CORE_DIR=/opt/platformio
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PlatformIO CLI
+RUN pip install --no-cache-dir platformio
+
+# Pre-install ESP32 platform and toolchains so builds start faster
+RUN pio platform install espressif32
+
+WORKDIR /workspace
+
+# Default command: build the project
+CMD ["pio", "run"]

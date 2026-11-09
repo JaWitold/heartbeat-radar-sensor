@@ -1,0 +1,29 @@
+{
+  "name": "chip-ld2450",
+  "author": "JaWitold",
+  "description": "HLK-LD2450 24GHz FMCW mmWave Radar Simulator",
+  "pins": [
+    "VCC",
+    "GND",
+    "TX",
+    "RX"
+  ],
+  "controls": [
+    {
+      "id": "target1_dist",
+      "label": "Target 1 Distance (cm)",
+      "type": "slider",
+      "min": 50,
+      "max": 600,
+      "value": 250
+    },
+    {
+      "id": "target1_x",
+      "label": "Target 1 X Angle/Offset (cm)",
+      "type": "slider",
+      "min": -200,
+      "max": 200,
+      "value": 0
+    }
+  ]
+}
