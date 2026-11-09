@@ -3,9 +3,8 @@
 #include "target_data.h"
 #include "threat_assessment.h"
 
-#include <array>
-#include <charconv>
-#include <cstddef>
+#include <cmath>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -15,23 +14,35 @@ namespace hrs::core
 namespace
 {
 
-constexpr float MM_PER_M    = 1000.0f;
-constexpr float CMS_PER_MPS = 100.0f;
+// Fixed-point scales (power of ten = decimals shown). Integer formatting on purpose:
+// float std::to_chars/printf pull ~100 KB of Ryu tables into the ESP32 image.
+constexpr int32_t MM_PER_M       = 1000; // x, y, distance: 3 decimals
+constexpr int32_t CMS_PER_MPS    = 100;  // speed: 2 decimals
+constexpr int32_t SWEEP_SCALE    = 10;   // sweep_deg: 1 decimal
+constexpr int32_t SEVERITY_SCALE = 100;  // severity: 2 decimals
+constexpr int32_t DECIMAL_BASE   = 10;
 
-constexpr int SWEEP_DECIMALS    = 1;
-constexpr int SEVERITY_DECIMALS = 2;
-constexpr int METERS_DECIMALS   = 3;
-constexpr int SPEED_DECIMALS    = 2;
-
-// Fits any int16-derived metre/speed value or a float sweep angle with its decimals.
-constexpr std::size_t NUMBER_BUFFER_SIZE = 32;
-
-void append_fixed(std::string& out, const float value, const int decimals)
+/// Appends scaled / scale in fixed notation, e.g. (-25, 100) -> "-0.25".
+void append_scaled(std::string& out, const int32_t scaled, const int32_t scale)
 {
-    std::array<char, NUMBER_BUFFER_SIZE> buffer{};
-    const auto result =
-        std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::fixed, decimals);
-    out.append(buffer.data(), result.ptr);
+    if (0 > scaled)
+    {
+        out += '-';
+    }
+    const int32_t magnitude = (0 > scaled) ? -scaled : scaled;
+    out += std::to_string(magnitude / scale);
+    out += '.';
+    const int32_t fraction = magnitude % scale;
+    for (int32_t digit = scale / DECIMAL_BASE; 0 < digit; digit /= DECIMAL_BASE)
+    {
+        out += static_cast<char>('0' + ((fraction / digit) % DECIMAL_BASE));
+    }
+}
+
+/// Rounds half away from zero, matching Arduino Print::print(float, digits).
+void append_fixed(std::string& out, const float value, const int32_t scale)
+{
+    append_scaled(out, static_cast<int32_t>(std::lround(value * static_cast<float>(scale))), scale);
 }
 
 const char* level_name(const ThreatLevel level)
@@ -75,11 +86,11 @@ std::string encode_telemetry_frame(const float sweep_deg,
                                    const float caution_distance_m)
 {
     std::string line = R"({"type":"radar_frame","sweep_deg":)";
-    append_fixed(line, sweep_deg, SWEEP_DECIMALS);
+    append_fixed(line, sweep_deg, SWEEP_SCALE);
     line += R"(,"alert":")";
     line += level_name(threat.level);
     line += R"(","severity":)";
-    append_fixed(line, threat.severity, SEVERITY_DECIMALS);
+    append_fixed(line, threat.severity, SEVERITY_SCALE);
     line += R"(,"targets":[)";
 
     bool first = true;
@@ -98,13 +109,13 @@ std::string encode_telemetry_frame(const float sweep_deg,
         line += R"({"id":)";
         line += std::to_string(static_cast<unsigned>(target.id));
         line += R"(,"x":)";
-        append_fixed(line, static_cast<float>(target.x_mm) / MM_PER_M, METERS_DECIMALS);
+        append_scaled(line, target.x_mm, MM_PER_M);
         line += R"(,"y":)";
-        append_fixed(line, static_cast<float>(target.y_mm) / MM_PER_M, METERS_DECIMALS);
+        append_scaled(line, target.y_mm, MM_PER_M);
         line += R"(,"speed":)";
-        append_fixed(line, static_cast<float>(target.speed_cms) / CMS_PER_MPS, SPEED_DECIMALS);
+        append_scaled(line, target.speed_cms, CMS_PER_MPS);
         line += R"(,"distance":)";
-        append_fixed(line, target.distance_m(), METERS_DECIMALS);
+        append_fixed(line, target.distance_m(), MM_PER_M);
         line += R"(,"threat_zone":")";
         line += zone_name(target.zone(danger_distance_m, caution_distance_m));
         line += R"("})";
