@@ -6,14 +6,15 @@
    - Never couple a display adapter to a specific sensor or microcontroller pin layout.
 
 2. **Axis Separation:**
-   - **Board Axis:** Defines the physical microcontroller platform, platform toolchain, system clock, and default pin mappings (`esp32dev`, `native`).
+   - **Board Axis:** Defines the physical microcontroller platform, platform toolchain, system clock, and pin mappings (`esp32dev`, `native`). All wiring macros live in that board's `platformio.ini` env; see `adapter-config.md`.
    - **Sensor Axis:** Implements the pure virtual interface `ISensor`. Any sensor adapter (`LD2450Adapter`, `RD03DAdapter`, `RCWL0516TriangulationAdapter`, `MockSensor`) must be swappable via dependency injection.
-   - **Display Axis:** Implements the pure virtual interface `IDisplay`. Any display adapter (`SerialDisplayAdapter`, `ST7789Adapter`, `ILI9341Adapter`, `MockDisplay`) must be swappable via dependency injection.
+   - **Display Axis:** Implements the pure virtual interface `IDisplay`. Any display adapter (`SerialDisplayAdapter`, `WifiDisplayAdapter`, `ST7789Adapter`, `ILI9341Adapter`, `MockDisplay`) must be swappable via dependency injection.
 
 3. **Factory & Composition Root:**
    - Adapters are instantiated only at the composition root (`main.cpp` or test fixtures) through orthogonal factory functions or direct dependency injection.
    - Core domain logic (`src/core/`) must never reference any specific board, sensor, or display header.
    - The composition root binds `SelectedSensor::SPECS` with compile-time threshold overrides (`-DRADAR_DANGER_DISTANCE_M=...`, `-DRADAR_CAUTION_DISTANCE_M=...`).
+   - `main.cpp` is the only reader of config macros (board wiring + `-f` overrides); adapters receive values via constructors. Full contract: `adapter-config.md`.
 
 4. **Avoiding Combinatorial Explosion with Cardinality-N Composability:**
    - Do NOT create static build environments for every combination ($N \times M \times K$).

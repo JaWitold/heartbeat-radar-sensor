@@ -12,13 +12,8 @@ namespace hrs::adapters::buzzers
 class ESP32BuzzerAdapter : public ports::IBuzzer
 {
 public:
-#ifndef BUZZER_PIN
-    static constexpr int DEFAULT_BUZZER_PIN = 25;
-#else
-    static constexpr int DEFAULT_BUZZER_PIN = BUZZER_PIN;
-#endif
-
-    explicit ESP32BuzzerAdapter(const int pin = DEFAULT_BUZZER_PIN);
+    /// The pin is board wiring: the composition root passes it from the board env.
+    explicit ESP32BuzzerAdapter(const int pin);
     ~ESP32BuzzerAdapter() override;
 
     // Owns the buzzer pin: a copy's destructor would silence the original.
@@ -38,7 +33,7 @@ public:
 private:
     void stop_hardware();
 
-    int pin_{DEFAULT_BUZZER_PIN};
+    int pin_;
     bool is_beeping_{false};
     uint16_t last_freq_hz_{0};
     uint16_t last_duration_ms_{0};

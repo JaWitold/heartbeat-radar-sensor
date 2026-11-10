@@ -13,7 +13,7 @@
    - Pass non-primitive parameters by `const &`.
    - Mark non-mutating member functions `const`.
 5. **Brace Style:** Allman style (opening brace on a new line).
-6. **No Magic Numbers:** Define named constants using `constexpr` or typed enums (`enum class`).
+6. **No Magic Numbers:** Define named constants using `constexpr` or typed enums (`enum class`). Pins and buses are board wiring macros in `platformio.ini`, never literals in adapters (`adapter-config.md`).
 7. **Naming Rules:**
    - Classes & Structs: `PascalCase`
    - Abstract Interfaces: `I` prefix + `PascalCase` (`ISensor`, `IDisplay`)

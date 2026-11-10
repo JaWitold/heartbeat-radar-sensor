@@ -14,6 +14,7 @@
    - Hardware sensor adapters own their own physical specifications constant (e.g. `LD2450Adapter::SPECS`) and return it via `specs()`.
    - Adapters bridge hardware SDKs or third-party libraries (e.g. `TFT_eSPI`, ESP32 `HardwareSerial`, `tone()`) to port interfaces.
    - Adapters may include vendor headers, but those headers must never leak into port interfaces or core domain.
+   - Adapters never read config macros; they expose `static constexpr DEFAULT_*` tunables and take every value (incl. pins) through the constructor. See `adapter-config.md`.
 4. **Dependency Inversion & Composition Root:**
    - High-level modules (Core) must not depend on low-level modules (Adapters). Both depend on abstractions (Ports).
    - Wire dependencies in the composition root (`main.cpp`) or in unit test setups.

@@ -8,8 +8,16 @@
 #error "Multiple sensors/displays need CompositeSensor/CompositeDisplay, which are not implemented yet"
 #endif
 
+// Configuration contract (see .claude/rules/adapter-config.md):
+//   board wiring  -> platformio.ini [env:<board>] (SERIAL_BAUD_RATE, LD2450_*_PIN, BUZZER_PIN, TFT_*)
+//   tunables      -> adapter constexpr DEFAULT_*, overridable here only via ./scripts/build.sh -f NAME=value
+//   selection     -> ENABLE_SENSOR_* / ENABLE_DISPLAY_* from ./scripts/build.sh
+
 #if defined(ENABLE_SENSOR_LD2450)
 #include "adapters/sensors/ld2450_adapter.h"
+#ifndef LD2450_BAUD_RATE
+#define LD2450_BAUD_RATE hrs::adapters::sensors::LD2450Adapter::DEFAULT_BAUD_RATE
+#endif
 #endif
 
 #if defined(ENABLE_DISPLAY_SERIAL)
@@ -20,12 +28,19 @@
 #include "adapters/displays/st7789_adapter.h"
 #endif
 
-#if defined(ENABLE_BUZZER)
-#include "adapters/buzzers/esp32_buzzer_adapter.h"
+#if defined(ENABLE_DISPLAY_WIFI)
+// WiFi board and WIFI_SSID/WIFI_PASSWORD are validated by scripts/build.sh.
+#include "adapters/displays/wifi_display_adapter.h"
+#ifndef WIFI_TCP_PORT
+#define WIFI_TCP_PORT hrs::adapters::displays::WifiDisplayAdapter::DEFAULT_TCP_PORT
+#endif
+#ifndef WIFI_HOSTNAME
+#define WIFI_HOSTNAME hrs::adapters::displays::WifiDisplayAdapter::DEFAULT_HOSTNAME
+#endif
 #endif
 
-#ifndef SERIAL_BAUD_RATE
-#define SERIAL_BAUD_RATE 115200
+#if defined(ENABLE_BUZZER)
+#include "adapters/buzzers/esp32_buzzer_adapter.h"
 #endif
 
 namespace
@@ -35,10 +50,7 @@ hrs::adapters::timers::ESP32TimerAdapter timer_adapter;
 
 #if defined(ENABLE_SENSOR_LD2450)
 using SelectedSensor = hrs::adapters::sensors::LD2450Adapter;
-SelectedSensor sensor_adapter(Serial2,
-                              hrs::adapters::sensors::LD2450Adapter::DEFAULT_RX_PIN,
-                              hrs::adapters::sensors::LD2450Adapter::DEFAULT_TX_PIN,
-                              hrs::adapters::sensors::LD2450Adapter::DEFAULT_BAUD_RATE);
+SelectedSensor sensor_adapter(Serial2, LD2450_RX_PIN, LD2450_TX_PIN, LD2450_BAUD_RATE);
 #else
 #error "No sensor selected. Build with ./scripts/build.sh (defaults: --sensors ld2450 --displays serial)"
 #endif
@@ -63,12 +75,15 @@ hrs::adapters::displays::SerialDisplayAdapter
     display_adapter(Serial, SPECS.danger_distance_m, SPECS.caution_distance_m);
 #elif defined(ENABLE_DISPLAY_ST7789)
 hrs::adapters::displays::ST7789Adapter display_adapter;
+#elif defined(ENABLE_DISPLAY_WIFI)
+hrs::adapters::displays::WifiDisplayAdapter display_adapter(
+    WIFI_SSID, WIFI_PASSWORD, WIFI_TCP_PORT, WIFI_HOSTNAME, SPECS.danger_distance_m, SPECS.caution_distance_m);
 #else
 #error "No display selected. Build with ./scripts/build.sh (defaults: --sensors ld2450 --displays serial)"
 #endif
 
 #if defined(ENABLE_BUZZER)
-hrs::adapters::buzzers::ESP32BuzzerAdapter buzzer_adapter;
+hrs::adapters::buzzers::ESP32BuzzerAdapter buzzer_adapter(BUZZER_PIN);
 #endif
 
 hrs::core::DistanceThreatEvaluator

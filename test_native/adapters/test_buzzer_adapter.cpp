@@ -6,11 +6,11 @@ using namespace hrs::adapters::buzzers;
 
 SCENARIO("ESP32BuzzerAdapter operations", "[buzzer][adapters]")
 {
-    GIVEN("A buzzer adapter with default pin (GPIO 25)")
+    GIVEN("A buzzer adapter wired to GPIO 25")
     {
-        ESP32BuzzerAdapter buzzer;
+        ESP32BuzzerAdapter buzzer(25);
 
-        THEN("Default pin is set and buzzer is idle")
+        THEN("The pin is recorded and buzzer is idle")
         {
             REQUIRE(25 == buzzer.pin());
             REQUIRE(false == buzzer.is_beeping());

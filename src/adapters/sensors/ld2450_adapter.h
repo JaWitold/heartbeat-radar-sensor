@@ -14,32 +14,15 @@ namespace hrs::adapters::sensors
 class LD2450Adapter : public ports::ISensor
 {
 public:
-#ifndef SENSOR_UART_RX_PIN
-    static constexpr int DEFAULT_RX_PIN = 16;
-#else
-    static constexpr int DEFAULT_RX_PIN = SENSOR_UART_RX_PIN;
-#endif
-
-#ifndef SENSOR_UART_TX_PIN
-    static constexpr int DEFAULT_TX_PIN = 17;
-#else
-    static constexpr int DEFAULT_TX_PIN = SENSOR_UART_TX_PIN;
-#endif
-
-#ifndef SENSOR_UART_BAUD_RATE
+    /// LD2450 factory UART rate. Override with -DLD2450_BAUD_RATE (read in main.cpp only).
     static constexpr uint32_t DEFAULT_BAUD_RATE = 256000;
-#else
-    static constexpr uint32_t DEFAULT_BAUD_RATE = SENSOR_UART_BAUD_RATE;
-#endif
 
     /// HLK-LD2450: 24GHz FMCW mmWave, 120° FoV (±60°), 6m range, 3 targets.
     static constexpr core::SensorSpecs SPECS{6.0f, -60.0f, 60.0f, 3, 1.5f, 3.5f};
 
 #ifdef ARDUINO
-    explicit LD2450Adapter(HardwareSerial& serial = Serial2,
-                           const int rx_pin       = DEFAULT_RX_PIN,
-                           const int tx_pin       = DEFAULT_TX_PIN,
-                           const uint32_t baud    = DEFAULT_BAUD_RATE);
+    /// Pins are board wiring: the composition root passes them from the board env.
+    LD2450Adapter(HardwareSerial& serial, const int rx_pin, const int tx_pin, const uint32_t baud = DEFAULT_BAUD_RATE);
 #else
     LD2450Adapter() = default;
 #endif
@@ -54,9 +37,9 @@ public:
 private:
 #ifdef ARDUINO
     HardwareSerial& serial_;
-    int rx_pin_{DEFAULT_RX_PIN};
-    int tx_pin_{DEFAULT_TX_PIN};
-    uint32_t baud_rate_{DEFAULT_BAUD_RATE};
+    int rx_pin_;
+    int tx_pin_;
+    uint32_t baud_rate_;
 #endif
     core::LD2450Parser parser_{};
     bool is_initialized_{false};

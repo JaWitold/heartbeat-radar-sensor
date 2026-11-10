@@ -27,6 +27,12 @@ Compile the project binary inside the container:
 # With custom alert threshold override
 ./scripts/build.sh -f RADAR_DANGER_DISTANCE_M=2.0f
 
+# Adapter tunables use the same -f path (names: .claude/rules/adapter-config.md)
+./scripts/build.sh -f LD2450_BAUD_RATE=115200
+
+# WiFi telemetry display (secrets from env, never committed)
+WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi -f WIFI_TCP_PORT=4000
+
 # With SPI TFT display output (renderer is currently a stub)
 ./scripts/build.sh --displays st7789
 ```
