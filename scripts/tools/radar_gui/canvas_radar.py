@@ -1,5 +1,5 @@
 """
-Tactical Radar CRT Canvas rendering COD MW2 / R6 Siege style HUD.
+Radar canvas: CRT-style sweep, range rings, target blips.
 """
 
 import math
@@ -10,7 +10,7 @@ from .protocol_decoders import RadarContact, zone_of
 
 
 class RadarCanvas(tk.Canvas):
-    """60 FPS double-buffered CRT tactical radar display."""
+    """60 FPS double-buffered CRT-style radar display."""
 
     COLOR_BG = "#070D0A"
     COLOR_GRID_DARK = "#0C2318"

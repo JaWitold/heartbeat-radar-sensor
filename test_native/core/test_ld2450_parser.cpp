@@ -63,6 +63,15 @@ std::vector<uint8_t> make_test_frame(const int16_t x1,
     return frame;
 }
 
+std::vector<TargetData> feed(LD2450Parser& parser, const std::vector<uint8_t>& bytes)
+{
+    for (const uint8_t byte : bytes)
+    {
+        parser.parse_byte(byte);
+    }
+    return parser.get_latest_targets();
+}
+
 } // namespace
 
 SCENARIO("LD2450Parser decodes the datasheet example frame", "[ld2450][core]")
@@ -72,7 +81,7 @@ SCENARIO("LD2450Parser decodes the datasheet example frame", "[ld2450][core]")
                                         0x40, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0xCC};
     LD2450Parser parser;
-    const auto targets = parser.parse_buffer(frame.data(), frame.size());
+    const auto targets = feed(parser, frame);
 
     REQUIRE(1 == targets.size());
     REQUIRE(-782 == targets[0].x_mm);
@@ -91,7 +100,7 @@ SCENARIO("LD2450Parser decodes valid binary frames", "[ld2450][core]")
         {
             // Target 1: x = 500mm, y = 2000mm, speed = -20 cm/s, res = 100mm
             const auto frame   = make_test_frame(500, 2000, -20, 100);
-            const auto targets = parser.parse_buffer(frame.data(), frame.size());
+            const auto targets = feed(parser, frame);
 
             THEN("One valid target is returned")
             {
@@ -108,7 +117,7 @@ SCENARIO("LD2450Parser decodes valid binary frames", "[ld2450][core]")
         WHEN("A frame with three active targets is parsed")
         {
             const auto frame   = make_test_frame(-300, 1500, 10, 50, 800, 2500, -40, 75, 0, 4000, 0, 100);
-            const auto targets = parser.parse_buffer(frame.data(), frame.size());
+            const auto targets = feed(parser, frame);
 
             THEN("Three valid targets are returned with matching slot IDs")
             {
@@ -125,7 +134,7 @@ SCENARIO("LD2450Parser decodes valid binary frames", "[ld2450][core]")
         WHEN("A frame has all zero slots")
         {
             const auto frame   = make_test_frame(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-            const auto targets = parser.parse_buffer(frame.data(), frame.size());
+            const auto targets = feed(parser, frame);
 
             THEN("Zero targets are returned")
             {
@@ -147,7 +156,7 @@ SCENARIO("LD2450Parser handles noisy streams and fragmented bytes", "[ld2450][co
             const auto valid_frame      = make_test_frame(250, 1200, -15, 60);
             stream.insert(stream.end(), valid_frame.begin(), valid_frame.end());
 
-            const auto targets = parser.parse_buffer(stream.data(), stream.size());
+            const auto targets = feed(parser, stream);
 
             THEN("The noise is discarded and the valid frame is parsed")
             {
@@ -184,7 +193,7 @@ SCENARIO("LD2450Parser handles noisy streams and fragmented bytes", "[ld2450][co
             auto frame = make_test_frame(400, 1800, 5, 80);
             frame[29]  = 0xAA; // Corrupt tail (expected 0xCC)
 
-            const auto targets = parser.parse_buffer(frame.data(), frame.size());
+            const auto targets = feed(parser, frame);
 
             THEN("The corrupted frame is discarded")
             {

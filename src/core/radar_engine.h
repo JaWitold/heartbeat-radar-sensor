@@ -1,10 +1,14 @@
 #pragma once
 
+#include "core/attitude_estimator.h"
+#include "core/coordinate_transformer.h"
+#include "core/imu_data.h"
 #include "core/sensor_specs.h"
 #include "core/target_data.h"
 #include "core/threat_assessment.h"
 #include "ports/i_buzzer.h"
 #include "ports/i_display.h"
+#include "ports/i_imu.h"
 #include "ports/i_sensor.h"
 #include "ports/i_threat_evaluator.h"
 #include "ports/i_timer.h"
@@ -19,15 +23,12 @@ namespace hrs::core
 class RadarEngine
 {
 public:
-    static constexpr float AUTO_FOV = 9999.0f;
-
     RadarEngine(ports::ISensor& sensor,
                 ports::IDisplay& display,
                 ports::ITimer& timer,
                 ports::IThreatEvaluator& threat_evaluator,
-                ports::IBuzzer* buzzer  = nullptr,
-                const float fov_min_deg = AUTO_FOV,
-                const float fov_max_deg = AUTO_FOV);
+                ports::IBuzzer* buzzer = nullptr,
+                ports::IImu* imu       = nullptr);
 
     bool init();
     void update();
@@ -40,8 +41,21 @@ public:
     [[nodiscard]] float fov_max_deg() const;
     [[nodiscard]] SensorSpecs sensor_specs() const;
 
+    [[nodiscard]] bool has_imu() const;
+    [[nodiscard]] const ImuData& latest_imu() const;
+    [[nodiscard]] const Orientation& current_orientation() const;
+
+    [[nodiscard]] const std::vector<TargetData>& targets() const;
+    [[nodiscard]] const std::vector<TargetData>& raw_targets() const;
+
+    void set_attitude_compensation(const bool enabled);
+    [[nodiscard]] bool is_attitude_compensated() const;
+
+    void set_transform_config(const TransformConfig& config);
+    [[nodiscard]] const TransformConfig& transform_config() const;
+
 private:
-    void update_sweep();
+    float update_sweep();
     void update_buzzer();
 
     ports::ISensor& sensor_;
@@ -49,13 +63,20 @@ private:
     ports::ITimer& timer_;
     ports::IThreatEvaluator& threat_evaluator_;
     ports::IBuzzer* buzzer_;
+    ports::IImu* imu_;
+    AttitudeEstimator attitude_estimator_{};
 
-    bool has_custom_fov_{false};
     float fov_min_deg_{0.0f};
     float fov_max_deg_{0.0f};
 
     std::vector<TargetData> targets_{};
+    std::vector<TargetData> raw_targets_{};
     ThreatAssessment threat_{};
+    ImuData latest_imu_{};
+    bool has_imu_data_{false};
+    bool compensate_attitude_{true};
+    TransformConfig transform_config_{};
+
     float sweep_angle_{0.0f};
     bool sweep_forward_{true};
     bool has_last_update_{false};

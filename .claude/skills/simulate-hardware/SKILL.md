@@ -1,19 +1,19 @@
 ---
 name: simulate-hardware
-description: Guide and run multi-tier simulation for radar sensors, displays, and microcontroller boards without requiring physical hardware.
+description: Run multi-tier simulation of radar sensors, displays, and ESP32 board without physical hardware — USB-UART HIL, virtual PTY, desktop/web HUD, tmux runner, Wokwi.
 ---
 
 # Skill: Simulate Hardware
 
 ## Purpose
-Enforces testing radar tracking, HUD display graphics, and peripheral protocols completely in software, via virtual PTY loopbacks, browser WebSockets, or benchtop USB-to-UART hardware-in-the-loop emulation.
+Test radar tracking, HUD graphics, peripheral protocols in software: virtual PTY loopback, browser WebSocket, or bench USB-UART hardware-in-the-loop.
 
 ---
 
 ## Simulation Modes
 
-### Mode 1: USB-to-UART Bench Simulation (Hardware-in-the-Loop)
-Simulate radar modules into a physical ESP32 using a USB-UART dongle (CP2102, FTDI, CH340):
+### Mode 1: USB-UART Bench (Hardware-in-the-Loop)
+Feed simulated radar into real ESP32 via USB-UART dongle (CP2102, FTDI, CH340):
 ```
 PC USB Port ---> USB-UART TX Pin ---> ESP32 GPIO 16 (RX2)
                  USB-UART GND    ---> ESP32 GND
@@ -28,41 +28,41 @@ Commands:
 ./scripts/sim-radar.sh --sensor rd03d --scenario multi --port /dev/ttyUSB0
 
 # Interactive mode (control target with keyboard arrow keys):
-./scripts/sim-radar.sh --sensor ld2450 --interactive --port /dev/ttyUSB0
+./scripts/sim-radar.sh --sensor ld2450 --scenario interactive --port /dev/ttyUSB0
 ```
 
 ---
 
-### Mode 2: Headless Virtual PTY Simulation (No Hardware)
-Create a virtual serial loopback to feed simulated radar data into native test applications or Wokwi:
+### Mode 2: Headless Virtual PTY (No Hardware)
+Virtual serial loopback. Feeds native apps or Wokwi:
 ```bash
 ./scripts/sim-radar.sh --sensor ld2450 --scenario patrol --pty
 ```
 
 ---
 
-### Mode 3: Tactical Desktop HUD (Tkinter GUI)
-Run desktop HUD visualization connecting to live radar feeds or synthetic demo streams:
+### Mode 3: Desktop HUD (Tkinter)
+Live radar feed or synthetic demo:
 ```bash
 ./scripts/gui.sh --demo                  # Standalone synthetic demo
 ./scripts/gui.sh --port /dev/ttyUSB0 --raw  # Direct sensor feed @ 256k baud
-./scripts/gui.sh --port /dev/ttyUSB0     # ESP32 JSON telemetry @ 115.2k baud
+./scripts/gui.sh --port /dev/ttyUSB0     # ESP32 JSON telemetry @ 921.6k baud
 ```
 
 ---
 
-### Mode 4: Tactical Web HUD (Browser Display)
-FastAPI and WebSocket server serving an HTML5 Canvas tactical radar display:
+### Mode 4: Web HUD (Browser)
+aiohttp + WebSocket server, HTML5 Canvas display:
 ```bash
-./scripts/web.sh --demo                  # Synthetic demo stream on http://127.0.0.1:8899
-./scripts/web.sh --port /dev/ttyUSB0 --raw  # Raw radar stream on browser HUD
-./scripts/web.sh --port /dev/ttyUSB0     # ESP32 telemetry on browser HUD
+./scripts/web.sh --demo                    # Synthetic demo stream on http://127.0.0.1:8088
+./scripts/web.sh --serial /dev/ttyUSB0 --raw  # Raw radar stream on browser HUD
+./scripts/web.sh --serial /dev/ttyUSB0     # ESP32 telemetry on browser HUD
 ```
 
 ---
 
-### Mode 5: All-in-One Simulator & HUD Runner (tmux)
-Launch sensor simulation and HUD in a synchronized multi-pane tmux session:
+### Mode 5: Simulator + HUD in tmux
+Simulator and HUD in multi-pane tmux session:
 ```bash
 ./scripts/sim-tmux.sh                    # Simulator + Desktop HUD
 ./scripts/sim-tmux.sh --web              # Simulator + Web HUD server
@@ -72,21 +72,21 @@ Launch sensor simulation and HUD in a synchronized multi-pane tmux session:
 ---
 
 ### Mode 6: Wokwi MCU & Display Emulation
-Simulate the ESP32 CPU, SPI TFT display, and custom LD2450 chip in browser:
-1. Compile firmware:
+ESP32 CPU, SPI TFT, custom LD2450 chip (`simulation/wokwi/`) in browser:
+1. Build:
    ```bash
    ./scripts/build.sh
    ```
-2. Open Wokwi in VS Code or in browser via `diagram.json` and `wokwi.toml`.
+2. Open Wokwi (VS Code or browser) with `diagram.json`, `wokwi.toml`.
 
 ---
 
 ## Pre-Purchase Sensor Evaluation
-Before ordering a new radar sensor model:
-1. Add its protocol encoder to `scripts/tools/sensor_sim/protocols/`.
-2. Verify signed integer format (sign-magnitude vs two's complement) against official datasheet byte examples.
-3. Run automated protocol verification tests:
+Before ordering new radar model:
+1. Add protocol encoder to `scripts/tools/sensor_sim/protocols/`.
+2. Check signed int format (sign-magnitude vs two's complement) against datasheet byte examples.
+3. Run protocol tests:
    ```bash
    ./scripts/test-python.sh
    ```
-4. Stream synthetic frames into the firmware parser to verify parsing speed, memory footprint, and edge-case handling.
+4. Stream synthetic frames into firmware parser. Check parse speed, memory footprint, edge cases.

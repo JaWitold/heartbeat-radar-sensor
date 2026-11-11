@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tactical Heartbeat Radar HUD</title>
+    <title>Heartbeat Radar HUD</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -11,14 +11,14 @@
         <!-- Top Bar -->
         <header class="hud-header">
             <div class="title-group">
-                <h1 class="glow-text">TACTICAL HEARTBEAT RADAR</h1>
-                <p class="subtitle">HLK-LD2450 FMCW mmWave Feed // COD MW2 &amp; R6 Tactical Web HUD</p>
+                <h1 class="glow-text">HEARTBEAT RADAR</h1>
+                <p class="subtitle">HLK-LD2450 FMCW mmWave Feed // Web HUD</p>
             </div>
             <div class="status-group">
                 <div id="status-badge" class="badge badge-disconnected">DISCONNECTED</div>
                 <div class="stat-pill">TARGETS: <span id="stat-targets" class="glow-val">0</span></div>
                 <div class="stat-pill">FPS: <span id="stat-fps" class="glow-val">0</span></div>
-                <button id="btn-audio" class="btn-audio">🔊 AUDIO: OFF</button>
+                <button id="btn-audio" class="btn-audio">AUDIO: OFF</button>
             </div>
         </header>
 
@@ -26,7 +26,7 @@
         <main class="hud-main">
             <!-- Radar Canvas Section -->
             <section class="radar-viewport">
-                <div id="danger-banner" class="danger-banner hidden">⚠️ PROXIMITY HAZARD // TARGET IN DANGER ZONE ⚠️</div>
+                <div id="danger-banner" class="danger-banner hidden">PROXIMITY HAZARD // TARGET IN DANGER ZONE</div>
                 <canvas id="radar-canvas"></canvas>
                 <div class="scanlines"></div>
             </section>
@@ -59,6 +59,14 @@
                     <div id="threat-indicator" class="threat-box threat-safe">
                         <span id="threat-level">ZONE CLEAR</span>
                     </div>
+                </div>
+
+                <div class="panel imu-panel">
+                    <h2 class="panel-title">ATTITUDE &amp; MOTION (MPU-6050)</h2>
+                    <div class="info-row"><span>Pitch / Roll:</span><strong id="imu-pitch-roll">+0.0° / +0.0°</strong></div>
+                    <div class="info-row"><span>Heading (Yaw):</span><strong id="imu-yaw">+0.0°</strong></div>
+                    <div class="info-row"><span>Acceleration:</span><strong id="imu-accel">0.00 / 0.00 / 1.00 G</strong></div>
+                    <div class="info-row"><span>Sensor Temp:</span><strong id="imu-temp" class="color-caution">--.-°C</strong></div>
                 </div>
 
                 <div class="panel info-panel">

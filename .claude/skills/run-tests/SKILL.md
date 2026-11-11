@@ -1,46 +1,46 @@
 ---
 name: run-tests
-description: Run the test suite for Heartbeat Radar Sensor across host Catch2 unit tests and on-device tests.
+description: Run Heartbeat Radar Sensor tests — host Catch2 unit tests, Python tool tests (pytest), format and static analysis — in Docker.
 ---
 
 # Skill: Run Tests
 
 ## Purpose
-Executes native C++ unit tests, Python tooling tests, and static analysis verification using isolated Docker containers.
+Native C++ unit tests, Python tool tests, static analysis. Isolated Docker containers.
 
-## Test Workflow
+## Workflow
 
 ### Native Host Unit Tests (Catch2)
-Host tests run in Docker without requiring ESP32 hardware or cross-compilers:
+Docker. No ESP32, no cross-compiler:
 ```bash
 ./scripts/test-native.sh
 ```
 
-Under the hood, this executes:
-1. CMake configuration with `-GNinja`
-2. Catch2 test compilation with GCC 13
+Steps inside:
+1. CMake configure, `-GNinja`
+2. Catch2 compile, GCC 13
 3. `ctest --output-on-failure`
 
-### Python Tools & Simulation Tests (pytest)
-Runs pytest on sensor simulators, protocol encoders/decoders, and web HUD server:
+### Python Tool Tests (pytest)
+Sensor simulators, protocol encoders/decoders, web HUD server:
 ```bash
 ./scripts/test-python.sh
 ```
 
-### Full Test Suite (Native C++ + Python)
-Runs all test suites across the project:
+### Full Suite (Native C++ + Python)
+Python suite skipped if `uv` missing:
 ```bash
 ./scripts/test.sh
 ```
 
-### Formatting & Static Analysis
+### Format & Static Analysis
 ```bash
 ./scripts/format-check.sh
 ./scripts/lint.sh
 ```
 
-### Debugging Failing Tests
-To run Catch2 directly with specific filter tags:
+### Debug Failing Tests
+Catch2 directly with tag filter:
 ```bash
 docker compose -f docker/docker-compose.yml run --rm test-native \
     bash -c "cd /workspace/build && ./test_native/unit_tests '[core]'"

@@ -1,37 +1,34 @@
 # Contributing Guide
 
-## Development Process
+## Process
 
-1. **Create an Issue:** Start by creating or picking an issue on GitHub.
+1. **Issue:** create or pick GitHub issue.
 2. **Branch from `main`:**
    ```bash
    git checkout main
    git pull origin main
    git checkout -b feature/sweep-animation-decay
    ```
-3. **Follow TDD (Red-Green-Refactor):**
-   - Write a failing test in `test_native/`
-   - Implement minimal functionality in `src/core/`
-   - Verify tests pass: `./scripts/test-native.sh`
-4. **Format & Static Analysis:**
+3. **TDD (Red → Green → Refactor):**
+   - Failing test in `test_native/`
+   - Minimal impl in `src/core/`
+   - Verify: `./scripts/test-native.sh`
+4. **Format & static analysis:**
    ```bash
    ./scripts/format.sh
    ./scripts/format-check.sh
    ./scripts/lint.sh
    ```
-5. **Commit Following the Commit Convention:**
-   Ensure each commit follows the required template.
-6. **Open Pull Request:**
-   - Base branch: `main`
-   - Fill out `.github/PULL_REQUEST_TEMPLATE.md`
-   - All CI checks must pass (Lint, Test, Build)
-   - PR will be squash merged with linear history.
+5. **Commit:** follow commit convention below.
+6. **Pull request:**
+   - Base: `main`
+   - Fill `.github/PULL_REQUEST_TEMPLATE.md`
+   - CI must pass (lint, test, build)
+   - Squash merge, linear history.
 
 ---
 
-## Commit Guidelines
-
-All commits must follow this structure:
+## Commit Format
 
 ```
 [Type] Short summary description (max 72 characters)
@@ -42,17 +39,17 @@ Wrapped at 72 characters per line.
 Signed-off-by: Your Name <your.email@example.com>
 ```
 
-### Commit Types:
-- `[Feature]` — New capability or functionality
-- `[Fix]` — Bug fix
-- `[Docs]` — Documentation changes
-- `[Style]` — Code styling or formatting (no logic change)
-- `[Refactor]` — Restructuring code without changing behavior
-- `[Test]` — Adding or updating test suites
-- `[Chore]` — Build configuration, dependencies, CI tooling
-- `[Perf]` — Performance optimization
+### Types
+- `[Feature]` — new functionality
+- `[Fix]` — bug fix
+- `[Docs]` — documentation
+- `[Style]` — formatting, no logic change
+- `[Refactor]` — restructure, no behavior change
+- `[Test]` — tests
+- `[Chore]` — build config, deps, CI
+- `[Perf]` — performance
 
-### Example Commit:
+### Example
 ```
 [Feature] Add multi-target aging to RadarEngine
 
@@ -66,15 +63,16 @@ Signed-off-by: JaWitold <jawitold@example.com>
 
 ## Coding Standards
 
-- **Language Standard:** C++17
-- **Braces:** Allman style (opening brace on a new line)
-- **Comparisons:** Yoda style (`if (nullptr == ptr)`, `if (0 == count)`)
-- **Memory Safety:** Smart pointers (`std::unique_ptr`, `std::shared_ptr`) or references; zero raw `new`/`delete`
-- **Const Correctness:** Variables, parameters, and member functions must be `const` whenever possible
-- **Architecture Integrity:** Zero `#include <Arduino.h>` or hardware drivers inside `src/core/`
-- **Naming Conventions:**
-  - Classes & Structs: `PascalCase`
-  - Interfaces: `I` prefix + `PascalCase` (`ISensor`, `IDisplay`)
-  - Functions & Methods: `snake_case()`
-  - Variables & Members: `snake_case`, private member variables suffix `_` (e.g. `sweep_angle_`)
-  - Constants & Enums: `UPPER_SNAKE_CASE`
+- **Standard:** C++17
+- **Braces:** Allman (opening brace on new line)
+- **Comparisons:** Yoda (`if (nullptr == ptr)`, `if (0 == count)`)
+- **Memory:** smart pointers (`std::unique_ptr`, `std::shared_ptr`) or references; no raw `new`/`delete`
+- **Const:** variables, parameters, member functions `const` where possible
+- **Architecture:** no `#include <Arduino.h>` or hardware drivers in `src/core/`
+- **Naming:**
+  - Classes & structs: `PascalCase`
+  - Interfaces: `I` + `PascalCase` (`ISensor`, `IDisplay`)
+  - Functions & methods: `snake_case()`
+  - Variables & members: `snake_case`; private members suffix `_` (`sweep_angle_`)
+  - Constants (`constexpr`, global/static): `UPPER_SNAKE_CASE`
+  - Enum values: `PascalCase` (`ThreatLevel::Danger`)

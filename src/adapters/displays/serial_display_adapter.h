@@ -1,47 +1,37 @@
 #pragma once
 
-#include "core/target_data.h"
-#include "core/threat_assessment.h"
-#include "ports/i_display.h"
+#include "adapters/displays/i_telemetry_display.h"
 
 #ifdef ARDUINO
 #include <Arduino.h>
 #include <Print.h>
-#else
-#include <iosfwd>
 #endif
 
-#include <vector>
+#include <string>
 
 namespace hrs::adapters::displays
 {
 
-class SerialDisplayAdapter : public ports::IDisplay
+/// Streams the shared JSON telemetry line over the serial console.
+class SerialDisplayAdapter : public ITelemetryDisplay
 {
 public:
 #ifdef ARDUINO
     SerialDisplayAdapter(Print& out, const float danger_distance_m, const float caution_distance_m);
 #else
-    SerialDisplayAdapter();
+    SerialDisplayAdapter(const float danger_distance_m, const float caution_distance_m);
 #endif
     ~SerialDisplayAdapter() override = default;
 
     bool init() override;
-    void clear() override;
-    void draw_sweep(const float angle_deg) override;
-    void draw_radar(const std::vector<core::TargetData>& targets) override;
-    void draw_alert(const core::ThreatAssessment& threat) override;
-    void flush() override;
 
-private:
+protected:
+    void send_line(const std::string& line) override;
+
 #ifdef ARDUINO
+private:
     Print& out_;
-    float danger_distance_m_;
-    float caution_distance_m_;
 #endif
-    float sweep_angle_deg_{0.0f};
-    core::ThreatAssessment threat_{};
-    std::vector<core::TargetData> targets_{};
 };
 
 } // namespace hrs::adapters::displays

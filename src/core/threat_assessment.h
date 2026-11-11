@@ -10,8 +10,7 @@ enum class ThreatLevel : uint8_t
     Safe     = 0,
     Caution  = 1,
     Danger   = 2,
-    Critical = 3,
-    NoSignal = 4 // sensor stopped sending frames; no assessment possible
+    NoSignal = 3 // sensor stopped sending frames; no assessment possible
 };
 
 struct ThreatAssessment

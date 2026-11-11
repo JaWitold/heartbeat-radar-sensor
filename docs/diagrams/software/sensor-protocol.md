@@ -1,6 +1,6 @@
 # HLK-LD2450 UART Protocol Sequence
 
-The HLK-LD2450 mmWave sensor operates at **256000 bps (8N1)**. By default, it streams periodic binary reporting frames containing coordinates, speed, and distance for up to 3 detected targets.
+HLK-LD2450: **256000 bps (8N1)**. Streams binary report frames by default: X, Y, speed, distance resolution for up to 3 targets.
 
 ```mermaid
 sequenceDiagram
@@ -8,7 +8,7 @@ sequenceDiagram
     participant ESP as ESP32 (LD2450Adapter)
     participant LD as HLK-LD2450 Sensor
 
-    Note over ESP,LD: Sensor Initialization
+    Note over ESP,LD: Optional config mode (LD2450Adapter does not send it)
     ESP->>LD: Send Config Mode Command (0xFD, 0xFC, 0xFB, 0xFA...)
     LD-->>ESP: Ack Configuration (0x04, 0x00, 0x00...)
     ESP->>LD: Enable Target Tracking & Multi-target Mode
@@ -22,9 +22,9 @@ sequenceDiagram
         LD->>ESP: Target 2 Data (X: 2B, Y: 2B, Speed: 2B, Distance Resolution: 2B)
         LD->>ESP: Target 3 Data (X: 2B, Y: 2B, Speed: 2B, Distance Resolution: 2B)
         LD->>ESP: Frame Tail (0x55, 0xCC)
-        ESP->>ESP: Validate Header & Tail Checksum
-        ESP->>ESP: Parse Coordinates (convert 16-bit signed cm to float meters)
-        ESP->>ESP: Filter inactive/noise targets
+        ESP->>ESP: Validate header & tail (no checksum)
+        ESP->>ESP: Parse sign-magnitude int16: X/Y mm, speed cm/s, dist res uint16 mm
+        ESP->>ESP: Skip empty slots (X=Y=speed=0)
     end
 ```
 
@@ -40,4 +40,4 @@ sequenceDiagram
 | 20 | 8 Bytes | Target 3 | `X_L`, `X_H`, `Y_L`, `Y_H`, `Speed_L`, `Speed_H`, `Dist_Res_L`, `Dist_Res_H` |
 | 28 | 2 Bytes | Tail | `0x55 0xCC` |
 
-Total Frame Length: **30 Bytes**
+Total: **30 bytes**. Signed fields: sign-magnitude (bit 15 set = positive), little-endian.

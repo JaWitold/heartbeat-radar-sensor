@@ -2,26 +2,26 @@
 
 ## Prerequisites
 
-The project is designed with a **Docker-first philosophy**: you do not need to install local compilers, ESP-IDF toolchains, or PlatformIO on your host machine to build or test the project.
+Docker-first. No local compiler, ESP-IDF, or PlatformIO needed to build or test.
 
 - **Required:**
-  - [Docker](https://docs.docker.com/get-docker/) (v24+ recommended with Docker Compose v2)
+  - [Docker](https://docs.docker.com/get-docker/) (v24+, Docker Compose v2)
   - [Git](https://git-scm.com/)
-- **Optional (for direct hardware flashing outside containers):**
-  - [PlatformIO Core (CLI)](https://docs.platformio.org/en/latest/core/installation/index.html) or VS Code with PlatformIO IDE extension
+- **Optional (flash outside containers):**
+  - [PlatformIO Core (CLI)](https://docs.platformio.org/en/latest/core/installation/index.html) or VS Code + PlatformIO IDE extension
 
 ---
 
 ## Quick Start
 
-### 1. Clone Repository
+### 1. Clone
 ```bash
 git clone git@github.com:JaWitold/heartbeat-radar-sensor.git
 cd heartbeat-radar-sensor
 ```
 
-### 2. Verify Code Quality & Format
-All QA tools run in isolated containers:
+### 2. Format & Static Analysis
+Runs in containers:
 ```bash
 # Check formatting
 ./scripts/format-check.sh
@@ -30,20 +30,20 @@ All QA tools run in isolated containers:
 ./scripts/lint.sh
 ```
 
-### 3. Run Native Unit Tests (Catch2)
-Host-side tests compile with GCC and run in a Docker container without physical hardware:
+### 3. Native Unit Tests (Catch2)
+GCC host build in Docker, no hardware:
 ```bash
 ./scripts/test-native.sh
 ```
 
 ### 4. Build Firmware
-Compile the ESP32 binary using the containerized PlatformIO build environment:
+ESP32 binary, containerized PlatformIO:
 ```bash
 ./scripts/build.sh
 ```
 
-### 5. Flash to Hardware
-Connect your ESP32 via USB and upload:
+### 5. Flash
+ESP32 via USB:
 ```bash
 # Default uses /dev/ttyUSB0
 ./scripts/upload.sh
@@ -52,8 +52,8 @@ Connect your ESP32 via USB and upload:
 ./scripts/upload.sh /dev/ttyACM0
 ```
 
-### 6. Monitor Serial Output
-View real-time logs and debug telemetry from the device:
+### 6. Serial Monitor
+Logs + telemetry, 921600 baud:
 ```bash
 ./scripts/monitor.sh /dev/ttyUSB0
 ```
@@ -64,10 +64,10 @@ View real-time logs and debug telemetry from the device:
 
 | Path | Purpose |
 |------|---------|
-| `src/core/` | Platform-independent radar tracking domain logic |
-| `src/ports/` | Abstract C++ interfaces (`ISensor`, `IDisplay`, `ITimer`, `IBuzzer`) |
-| `src/adapters/` | Hardware-specific drivers (HLK-LD2450 UART, ST7789 SPI) |
-| `test_native/` | Catch2 host-side unit tests |
-| `scripts/` | Shell script entry points for Docker operations |
-| `docker/` | Dockerfiles (`dev`, `test`, `qa`) and Compose specification |
-| `docs/` | Architecture guides, hardware wiring, and diagrams |
+| `src/core/` | Platform-independent domain logic |
+| `src/ports/` | Abstract C++ interfaces (`ISensor`, `IDisplay`, `ITimer`, `IBuzzer`, `IImu`, `IThreatEvaluator`) |
+| `src/adapters/` | Hardware drivers (HLK-LD2450 UART, serial/WiFi telemetry, ST7789 SPI, MPU-6050 I2C, buzzer PWM) |
+| `test_native/` | Catch2 host unit tests + mocks |
+| `scripts/` | Shell entry points for Docker operations |
+| `docker/` | Dockerfiles (`dev`, `test`, `qa`) + Compose file |
+| `docs/` | Architecture, wiring, diagrams |

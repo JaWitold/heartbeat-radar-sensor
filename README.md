@@ -1,45 +1,40 @@
-# 🎯 Heartbeat Radar Sensor
+# Heartbeat Radar Sensor
 
-<!-- Badges -->
-[![CI Status](https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP32-orange?style=flat-square)](https://platformio.org)
 
----
+Human presence + movement detection. **ESP32** + **HLK-LD2450** 24 GHz FMCW mmWave radar. Targets (X/Y position, speed) drawn as radar plot on **ST7789** TFT, or streamed as JSON telemetry over serial / WiFi TCP to desktop or web HUD.
 
-**A real-time human presence and movement detection system** inspired by tactical heartbeat sensors from games like Call of Duty and Rainbow Six Siege — built on real hardware.
+## Features (v1.0)
 
-The system uses an **ESP32** microcontroller paired with an **HLK-LD2450** millimeter-wave radar module to detect human presence, distance, and movement angle. Detection results are rendered in real time on an **ST7789 TFT display** as a radar sweep visualization.
+- HLK-LD2450 UART2 binary protocol parser (256000 baud), up to 3 simultaneous targets, X/Y + speed
+- Distance-based threat zones (danger / caution), compile-time threshold overrides
+- MPU-6050 IMU attitude estimation; targets rotated into device forward frame
+- Output adapters: serial JSON telemetry, WiFi TCP telemetry, ST7789 TFT (renderer = stub)
+- PWM buzzer alert paced by threat level
+- Hexagonal (ports & adapters); core unit-tested on host
+- Docker build, test, lint
 
-## ✨ Features (v1.0 MVP)
+## Tech Stack
 
-- 🔍 Real-time human target detection via HLK-LD2450 mmWave radar
-- 📡 Distance and angle measurement for up to 3 simultaneous targets
-- 🖥️ Radar sweep visualization on ST7789 TFT display
-- ⚙️ Configurable detection zones and sensitivity thresholds
-- 🏗️ Clean hexagonal (ports & adapters) architecture
-- 🧪 Comprehensive unit and integration test suite
-- 🐳 Fully containerized development environment
+| Layer            | Technology                          |
+| ---------------- | ----------------------------------- |
+| MCU              | ESP32 (Xtensa dual-core, 240 MHz)   |
+| Radar            | HLK-LD2450 (24 GHz FMCW mmWave)     |
+| IMU              | MPU-6050 (I2C)                      |
+| Display          | ST7789 240×320 SPI TFT (TFT_eSPI)   |
+| Language         | C++17                               |
+| Build system     | PlatformIO                          |
+| Host tests       | Catch2 (CMake)                      |
+| Tooling          | Python via `uv` (simulator, HUDs)   |
+| Containerization | Docker                              |
+| CI/CD            | GitHub Actions                      |
 
-## 🛠️ Tech Stack
-
-| Layer            | Technology                        |
-| ---------------- | --------------------------------- |
-| MCU              | ESP32 (Xtensa dual-core, 240MHz) |
-| Radar Sensor     | HLK-LD2450 (24 GHz mmWave)       |
-| Display          | ST7789 240×240 TFT               |
-| Language         | C++17                             |
-| Build System     | PlatformIO                        |
-| Architecture     | Hexagonal (Ports & Adapters)      |
-| Testing          | Unity (PlatformIO native)         |
-| Containerization | Docker                            |
-| CI/CD            | GitLab CI                         |
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) (recommended) **or** [PlatformIO CLI](https://docs.platformio.org/en/latest/core/installation.html)
+- [Docker](https://docs.docker.com/get-docker/) **or** [PlatformIO CLI](https://docs.platformio.org/en/latest/core/installation.html)
+- [`uv`](https://github.com/astral-sh/uv) for Python tools
 - Git
 
 ### Clone
@@ -68,100 +63,81 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi
 # Run host-native Catch2 unit tests (in Docker)
 ./scripts/test-native.sh
 
-# Run swappable radar simulator (USB-UART, PTY, or socket)
+# Run radar simulator (USB-UART, PTY, or socket)
 ./scripts/sim-radar.sh --sensor ld2450 --scenario patrol --port /dev/ttyUSB0
 ```
 
 ### Flash
 
 ```bash
-# Flash to connected ESP32
 ./scripts/upload.sh /dev/ttyUSB0
 ```
 
-## 🏛️ Architecture
+## Architecture
 
-This project follows a **hexagonal (ports & adapters) architecture** to keep business logic decoupled from hardware drivers and framework specifics. This enables comprehensive testing on the host machine without physical hardware.
+Hexagonal (ports & adapters). `src/core/` = pure C++17, no Arduino/ESP-IDF deps. Hardware access only via interfaces in `src/ports/`. Host-tested with mocks.
 
-For a detailed architecture overview, diagrams, and design decisions, see:
+Details: **[Architecture Documentation](docs/architecture.md)**.
 
-📖 **[Architecture Documentation](docs/architecture.md)**
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 heartbeat-radar-sensor/
-├── src/                        # Application source code
-│   ├── domain/                 #   Core business logic (pure C++)
-│   ├── ports/                  #   Interface definitions
-│   ├── adapters/               #   Hardware & framework implementations
-│   └── main.cpp                #   Entry point
-├── include/                    # Public headers
-├── lib/                        # Project-specific libraries
-├── test/                       # Test suites
-│   ├── unit/                   #   Unit tests (native)
-│   └── integration/            #   Integration tests
-├── docs/                       # Documentation
-│   ├── architecture.md         #   Architecture overview
-│   ├── hardware-wiring.md      #   Wiring diagrams & BOM
-│   └── contributing.md         #   Contribution guidelines
-├── scripts/                    # Automation scripts
-├── hardware/                   # Fritzing schematics & diagrams
-├── platformio.ini              # PlatformIO configuration
-├── Dockerfile                  # Development container
-├── docker-compose.yml          # Container orchestration
-└── .gitlab-ci.yml              # CI/CD pipeline
+├── src/
+│   ├── core/                   # Domain logic (pure C++17)
+│   ├── ports/                  # Abstract interfaces (ISensor, IDisplay, IImu, ...)
+│   ├── adapters/               # sensors, displays, imu, buzzers, timers
+│   └── main.cpp                # Composition root, only reader of config macros
+├── test_native/                # Host Catch2 tests + mocks
+├── test/test_embedded/         # On-device tests (empty)
+├── scripts/                    # Build/test/flash wrappers
+│   └── tools/                  # Python: sensor_sim, radar_gui, radar_web
+├── simulation/wokwi/           # Wokwi custom LD2450 chip
+├── docker/                     # Dev / test / QA Dockerfiles, compose
+├── docs/                       # Architecture, wiring, guides, diagrams
+├── platformio.ini              # Board envs and wiring macros
+└── .github/workflows/          # CI and release
 ```
 
-## 📜 Scripts Reference
+## Scripts Reference
 
 | Script | Command | Description |
 |---|---|---|
-| `scripts/build.sh` | `./scripts/build.sh [--board B] [--sensor S] [--display D]` | Build firmware with orthogonal targets (Docker) |
-| `scripts/sim-radar.sh` | `./scripts/sim-radar.sh [--sensor S] [--scenario SC] [--port P \| --pty]` | Run swappable radar sensor simulator (uv) |
-| `scripts/gui.sh` | `./scripts/gui.sh [--demo \| --port P]` | Tactical desktop radar HUD display (uv) |
-| `scripts/test-native.sh` | `./scripts/test-native.sh` | Run host Catch2 unit tests (Docker) |
-| `scripts/test.sh` | `./scripts/test.sh` | Run all unit & integration tests |
-| `scripts/upload.sh` | `./scripts/upload.sh [port]` | Flash firmware to connected ESP32 |
-| `scripts/monitor.sh` | `./scripts/monitor.sh [port]` | Open serial console monitor |
-| `scripts/lint.sh` | `./scripts/lint.sh` | Run clang-tidy and cppcheck static analysis |
-| `scripts/format.sh` | `./scripts/format.sh` | Auto-format C++ code with clang-format |
-| `scripts/format-check.sh` | `./scripts/format-check.sh` | Check formatting in CI (exits non-zero if dirty) |
-| `scripts/docs.sh` | `./scripts/docs.sh` | Generate Doxygen HTML documentation |
+| `scripts/build.sh` | `./scripts/build.sh [--board B] [--sensors S] [--displays D] [-f NAME=value]` | Build firmware (Docker) |
+| `scripts/sim-radar.sh` | `./scripts/sim-radar.sh [--sensor S] [--scenario SC] [--port P \| --pty]` | Radar sensor simulator (uv) |
+| `scripts/gui.sh` | `./scripts/gui.sh [--demo \| --port P]` | Desktop radar HUD, Tkinter (uv) |
+| `scripts/web.sh` | `./scripts/web.sh [--demo \| --serial P]` | Web radar HUD on http://127.0.0.1:8088 (uv) |
+| `scripts/sim-tmux.sh` | `./scripts/sim-tmux.sh [--web]` | Simulator + HUD in tmux |
+| `scripts/test-native.sh` | `./scripts/test-native.sh` | Host Catch2 unit tests (Docker) |
+| `scripts/test-python.sh` | `./scripts/test-python.sh` | Python tool tests |
+| `scripts/test.sh` | `./scripts/test.sh` | All tests: native + Python (if `uv`) |
+| `scripts/upload.sh` | `./scripts/upload.sh [port]` | Flash firmware to ESP32 |
+| `scripts/monitor.sh` | `./scripts/monitor.sh [port]` | Serial monitor (921600 baud) |
+| `scripts/lint.sh` | `./scripts/lint.sh` | clang-tidy + cppcheck |
+| `scripts/format.sh` | `./scripts/format.sh` | clang-format in place |
+| `scripts/format-check.sh` | `./scripts/format-check.sh` | Check formatting (non-zero exit if dirty) |
+| `scripts/docs.sh` | `./scripts/docs.sh` | Doxygen HTML docs |
 
-## 🔧 Hardware
+## Hardware
 
-### Components
+| Component        | Model / Spec                | Qty |
+| ---------------- | --------------------------- | --- |
+| Microcontroller  | ESP32 DevKit V1             | 1   |
+| Radar module     | HLK-LD2450 (24 GHz)         | 1   |
+| IMU              | MPU-6050                    | 1   |
+| TFT display      | ST7789 240×320 SPI          | 1   |
+| Misc             | Jumper wires, breadboard    | —   |
 
-| Component        | Model / Spec               | Qty |
-| ---------------- | -------------------------- | --- |
-| Microcontroller  | ESP32 DevKit V1            | 1   |
-| Radar Module     | HLK-LD2450 (24 GHz)       | 1   |
-| TFT Display      | ST7789 240×240 1.3" IPS    | 1   |
-| Misc             | Jumper wires, breadboard   | —   |
+Pins + wiring: **[Hardware Wiring Guide](docs/hardware-wiring.md)**. Pins defined in `platformio.ini` `[env:esp32dev]`.
 
-For complete wiring diagrams, pin mappings, and assembly instructions, see:
+## Roadmap
 
-🔌 **[Hardware Wiring Guide](docs/hardware-wiring.md)**
+[GitHub Issues](https://github.com/JaWitold/heartbeat-radar-sensor/issues).
 
-## 🗺️ Roadmap
+## Contributing
 
-Planned features and enhancements are tracked as issues:
+**[Contributing Guide](docs/contributing.md)**.
 
-📋 **[GitHub Issues](https://github.com/JaWitold/heartbeat-radar-sensor/issues)**
+## License
 
-## 🤝 Contributing
-
-Contributions are welcome! Please read the contribution guidelines before submitting a pull request:
-
-📖 **[Contributing Guide](docs/contributing.md)**
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/JaWitold">JaWitold</a></sub>
-</p>
+MIT — [LICENSE](LICENSE).

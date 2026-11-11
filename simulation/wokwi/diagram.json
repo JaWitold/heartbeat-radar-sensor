@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "author": "JaWitold",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "chip-ld2450",
+      "id": "radar",
+      "top": -140,
+      "left": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-mpu6050",
+      "id": "imu",
+      "top": -140,
+      "left": -60,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "top": 160,
+      "left": 180,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "esp:RX", "", [] ],
+    [ "esp:GND.1", "imu:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "imu:VCC", "red", [ "v0" ] ],
+    [ "esp:21", "imu:SDA", "green", [ "v0" ] ],
+    [ "esp:22", "imu:SCL", "blue", [ "v0" ] ],
+    [ "esp:GND.2", "radar:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "radar:VCC", "red", [ "v0" ] ],
+    [ "esp:16", "radar:TX", "gold", [ "v0" ] ],
+    [ "esp:17", "radar:RX", "orange", [ "v0" ] ],
+    [ "esp:25", "buzzer:2", "purple", [ "v0" ] ],
+    [ "esp:GND.3", "buzzer:1", "black", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

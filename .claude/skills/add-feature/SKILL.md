@@ -1,33 +1,33 @@
 ---
 name: add-feature
-description: Guide TDD-driven implementation of a new feature for the Heartbeat Radar Sensor while adhering to hexagonal architecture and coding standards.
+description: TDD-driven new feature for Heartbeat Radar Sensor (core logic, sensor or display adapter). Enforces hexagonal architecture, adapter config buckets, coding standards.
 ---
 
 # Skill: Add Feature
 
 ## Purpose
-Enforces the professional development standard when implementing a new capability or sensor/display adapter.
+Standard flow for new capability or sensor/display adapter.
 
-## Step-by-Step Procedure
+## Procedure
 
-### 1. Identify Layer and Interfaces
-- **Domain Logic:** (e.g. contact persistence, sweep calculations, threat assessment) -> add to `src/core/`. Keep domain models pure (using `SensorSpecs` from `src/core/sensor_specs.h`).
-- **External Hardware (Sensors):**
-  1. Verify the abstract contract in `src/ports/i_sensor.h` (`scan()`, `specs()`, `is_connected()`).
-  2. Implement/update mock in `test_native/mocks/mock_sensor.h` with `set_specs()` and `set_connected()`.
-  3. Verify the wire-format representation in the sensor datasheet (check whether signed numbers are sign-magnitude or two's complement).
-  4. Implement software encoder in `scripts/tools/sensor_sim/protocols/` and decoder in `scripts/tools/radar_gui/protocol_decoders.py`.
-  5. Implement concrete adapter in `src/adapters/sensors/` with `static constexpr core::SensorSpecs SPECS{...}`.
-  6. Wire config per `.claude/rules/adapter-config.md` (see "Adapter Configuration" below).
-  7. Register sensor in `scripts/build.sh` and `src/main.cpp`.
-- **External Hardware (Displays):**
-  1. Implement contract in `src/ports/i_display.h`.
-  2. Implement concrete adapter in `src/adapters/displays/`.
-  3. Wire config per `.claude/rules/adapter-config.md` (see "Adapter Configuration" below).
-  4. Register display in `scripts/build.sh` and `src/main.cpp`.
+### 1. Pick Layer and Interfaces
+- **Domain logic** (contact persistence, sweep math, threat assessment) → `src/core/`. Keep models pure; use `SensorSpecs` from `src/core/sensor_specs.h`.
+- **Sensor adapter:**
+  1. Check contract in `src/ports/i_sensor.h` (`scan()`, `specs()`, `is_connected()`).
+  2. Add/update mock `test_native/mocks/mock_sensor.h` with `set_specs()`, `set_connected()`.
+  3. Check datasheet wire format: signed fields sign-magnitude or two's complement.
+  4. Encoder in `scripts/tools/sensor_sim/protocols/`, decoder in `scripts/tools/radar_gui/protocol_decoders.py`.
+  5. Adapter in `src/adapters/sensors/` with `static constexpr core::SensorSpecs SPECS{...}`.
+  6. Wire config per `.claude/rules/adapter-config.md` (see 1b).
+  7. Register in `scripts/build.sh` and `src/main.cpp`.
+- **Display adapter:**
+  1. Implement `src/ports/i_display.h`.
+  2. Adapter in `src/adapters/displays/`.
+  3. Wire config per `.claude/rules/adapter-config.md` (see 1b).
+  4. Register in `scripts/build.sh` and `src/main.cpp`.
 
 ### 1b. Adapter Configuration (macros & definitions)
-Sort every value the adapter needs into one bucket, then wire it exactly as shown:
+Each value → one bucket. Wire exactly:
 
 | Value | Put it in | Wiring |
 |---|---|---|
@@ -37,30 +37,30 @@ Sort every value the adapter needs into one bucket, then wire it exactly as show
 | Vendor library setting | board env under the library's own names (`TFT_*`) | library reads it |
 
 Checklist:
-- [ ] No `#ifdef`/`#ifndef` on config names inside `src/adapters/` or `src/core/` (only `#ifdef ARDUINO`).
-- [ ] Constructor takes every value; pins have no default argument.
-- [ ] Each value defined in exactly one place (`rg <NAME>` shows one definition + the `main.cpp` read).
-- [ ] Unsupported combos and missing secrets are rejected in `scripts/build.sh`, not with `#error` in `main.cpp`.
+- [ ] No `#ifdef`/`#ifndef` on config names in `src/adapters/` or `src/core/` (only `#ifdef ARDUINO`).
+- [ ] Ctor takes every value; pins: no default arg.
+- [ ] Each value defined once (`rg <NAME>` → one definition + `main.cpp` read).
+- [ ] Unsupported combos, missing secrets rejected in `scripts/build.sh`, not `#error` in `main.cpp`.
 - [ ] User-facing overrides listed in `./scripts/build.sh --help`.
 
-### 2. Red Phase (Write Failing Test)
-Create or update tests in `test_native/core/` or `test_native/adapters/`:
-- Use Catch2 BDD syntax (`SCENARIO`, `GIVEN`, `WHEN`, `THEN`).
-- Ensure comparisons follow Yoda style (`REQUIRE(0 == target_count)`).
-- Include exact datasheet byte vectors for binary protocol frames.
+### 2. Red (Failing Test)
+Tests in `test_native/core/` or `test_native/adapters/`:
+- Catch2 BDD: `SCENARIO`, `GIVEN`, `WHEN`, `THEN`.
+- Yoda comparisons (`REQUIRE(0 == target_count)`).
+- Exact datasheet byte vectors for binary frames.
 - Run:
   ```bash
   ./scripts/test-native.sh
   ```
-- Confirm the test fails.
+- Confirm fail.
 
-### 3. Green Phase (Pass Minimal Implementation)
-- Write minimal code in `src/core/` or `src/adapters/` to pass tests.
-- Run `./scripts/test-native.sh` until all tests pass.
+### 3. Green (Minimal Impl)
+- Minimal code in `src/core/` or `src/adapters/`.
+- Run `./scripts/test-native.sh` until green.
 
-### 4. Refactor & Verification Phase
-- Check const-correctness, Yoda comparisons, and memory safety.
-- Run format and lint checks:
+### 4. Refactor & Verify
+- Check const-correctness, Yoda, memory safety.
+- Format, lint, test:
   ```bash
   ./scripts/format.sh
   ./scripts/format-check.sh
@@ -68,14 +68,14 @@ Create or update tests in `test_native/core/` or `test_native/adapters/`:
   ./scripts/test.sh
   ```
 
-### 5. Firmware Build Verification
-- Verify that firmware compiles cleanly inside Docker:
+### 5. Firmware Build
+- Must compile clean in Docker:
   ```bash
   ./scripts/build.sh
   ```
 
 ### 6. Commit
-- Commit with conventional format:
+- Format:
   ```
   [Type] Short summary (max 72 chars)
 

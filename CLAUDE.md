@@ -1,35 +1,39 @@
 # Heartbeat Radar Sensor — Developer & Agent Guide
 
-Tactical heartbeat radar sensor inspired by Call of Duty: Modern Warfare 2 and Rainbow Six Siege.
-Built for ESP32 with the HLK-LD2450 24GHz FMCW mmWave radar and ST7789 240x320 SPI TFT display.
+Human presence + movement detection.
+ESP32 + HLK-LD2450 24GHz FMCW mmWave radar + ST7789 240x320 SPI TFT.
 
 ---
 
-## 🏛️ Architecture: Hexagonal (Ports & Adapters)
+## Architecture: Hexagonal (Ports & Adapters)
 
-- **Strict Boundary:** The Core Domain (`src/core/`) must remain pure C++17 with **ZERO** platform or hardware dependencies (`<Arduino.h>`, ESP-IDF, FreeRTOS, or driver headers are forbidden in `src/core/`). Physical capabilities are described via pure value types (`SensorSpecs`).
-- **Ports (`src/ports/`):** Abstract interfaces with pure virtual methods:
-  - `ISensor`: Scans and returns `std::vector<TargetData>`, reports `specs()`, and health `is_connected()`.
-  - `IDisplay`: HUD rendering, radar sweep drawing, blip plotting, alert borders.
-  - `ITimer`: System timing and delays (allows synthetic time acceleration in unit tests).
-  - `IBuzzer`: Proximity audio alert contract.
-  - `IThreatEvaluator`: Evaluates target vectors into `ThreatAssessment`.
-- **Adapters (`src/adapters/`):** Subsystem implementations (`sensors`, `displays`, `timers`, `buzzers`):
-  - `LD2450Adapter`: High-speed UART2 binary protocol parser (256000 baud) owning its `SPECS`.
-  - `SerialDisplayAdapter`: Serial JSON telemetry output for desktop/web HUD.
-  - `ST7789Adapter`: SPI display rendering via `TFT_eSPI`.
-  - `WifiDisplayAdapter`: same JSON telemetry over a TCP server on WiFi boards (`socket://heartbeat-radar.local:3333`). One client at a time (a newer one replaces the older); for several viewers connect only `web.sh` and open it in many browsers.
+- **Strict boundary:** core (`src/core/`) = pure C++17, **ZERO** platform/hardware deps. Forbidden in `src/core/`: `<Arduino.h>`, ESP-IDF, FreeRTOS, driver headers. Physical capabilities = pure value types (`SensorSpecs`).
+- **Ports (`src/ports/`):** abstract interfaces, pure virtual methods:
+  - `ISensor`: `scan()` → `std::vector<TargetData>`, `specs()`, health `is_connected()`.
+  - `IDisplay`: HUD render, radar sweep, blip plot, alert borders.
+  - `ITimer`: timing + delays (synthetic time acceleration in unit tests).
+  - `IBuzzer`: proximity audio alert contract.
+  - `IThreatEvaluator`: target vectors → `ThreatAssessment`.
+  - `IImu`: `init()`, `is_connected()`, `read_imu(ImuData&)`.
+- **Adapters (`src/adapters/`):** per subsystem (`sensors`, `displays`, `imu`, `timers`, `buzzers`):
+  - `LD2450Adapter`: UART2 binary protocol parser (256000 baud), owns `SPECS`.
+  - `SerialDisplayAdapter`: serial JSON telemetry for desktop/web HUD.
+  - `ST7789Adapter`: SPI display via `TFT_eSPI`.
+  - `WifiDisplayAdapter`: same JSON telemetry over TCP server on WiFi boards (`socket://heartbeat-radar.local:3333`). One client at a time; newer replaces older. Many viewers: connect only `web.sh`, open it in many browsers.
+  - `MPU6050Adapter`: MPU-6050 IMU over I2C.
   - `ESP32BuzzerAdapter`: PWM audio alert driver.
-  - `ESP32TimerAdapter`: Hardware timer implementation.
-- **Mocks (`test_native/mocks/`):** Test doubles implementing ports for deterministic host-side testing.
+  - `ESP32TimerAdapter`: hardware timer.
+- **Mocks (`test_native/mocks/`):** port test doubles for deterministic host tests.
 
-- **Configuration** (`.claude/rules/adapter-config.md`): board wiring (pins, console baud) only in `platformio.ini` `[env:<board>]`; adapter tunables are `static constexpr DEFAULT_*` overridable via `./scripts/build.sh -f NAME=value`; secrets from env via `build.sh`. Only `src/main.cpp` reads config macros.
+- **Writing style** (`.claude/rules/writing-style.md`): docs, comments, rules, logs, UI text = short, concrete, technical. No marketing words, game references, emoji.
+
+- **Configuration** (`.claude/rules/adapter-config.md`): board wiring (pins, console baud) only in `platformio.ini` `[env:<board>]`. Adapter tunables = `static constexpr DEFAULT_*`, override via `./scripts/build.sh -f NAME=value`. Secrets from env via `build.sh`. Only `src/main.cpp` reads config macros.
 
 ---
 
-## 🛠️ Common Commands
+## Common Commands
 
-All build, test, and QA operations run inside isolated Docker containers:
+Build, test, QA run in isolated Docker containers:
 
 ```bash
 # Build firmware binary (orthogonal options: --board, --sensors, --displays)
@@ -44,16 +48,16 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telem
 ./scripts/sim-radar.sh --sensor ld2450 --scenario patrol --port /dev/ttyUSB0
 ./scripts/sim-radar.sh --sensor rd03d --scenario multi --pty
 
-# Run tactical desktop radar HUD (Tkinter GUI via uv)
+# Run desktop radar HUD (Tkinter GUI via uv)
 ./scripts/gui.sh --demo                         # Standalone demo mode
 ./scripts/gui.sh --port /dev/ttyUSB0 --raw      # Live raw radar feed @ 256k
-./scripts/gui.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 115k
+./scripts/gui.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 921k
 ./scripts/gui.sh --port socket://heartbeat-radar.local:3333   # ESP32 WiFi telemetry (or simulator --socket)
 
-# Run tactical web radar HUD (FastAPI + HTML5 Canvas via uv)
-./scripts/web.sh --demo                         # Standalone web demo on http://127.0.0.1:8899
+# Run web radar HUD (FastAPI + HTML5 Canvas via uv)
+./scripts/web.sh --demo                         # Standalone web demo on http://127.0.0.1:8088
 ./scripts/web.sh --serial /dev/ttyUSB0 --raw    # Live raw radar feed @ 256k
-./scripts/web.sh --serial /dev/ttyUSB0          # ESP32 telemetry feed @ 115k
+./scripts/web.sh --serial /dev/ttyUSB0          # ESP32 telemetry feed @ 921k
 ./scripts/web.sh --serial socket://heartbeat-radar.local:3333 # ESP32 WiFi telemetry (or simulator --socket)
 
 # Run all-in-one synchronized sensor simulator + HUD (tmux)
@@ -63,7 +67,7 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telem
 # Run native Catch2 unit tests (host-side in Docker)
 ./scripts/test-native.sh
 
-# Run all tests (native + embedded)
+# All tests: native Catch2 + Python (Python skipped if no `uv`)
 ./scripts/test.sh
 
 # Code quality & static analysis (clang-tidy + cppcheck)
@@ -81,22 +85,22 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telem
 # Upload firmware to connected ESP32 (runs locally, requires USB)
 ./scripts/upload.sh [port]   # Default: /dev/ttyUSB0
 
-# Serial monitor (runs locally, 115200 baud)
+# Serial monitor (runs locally, 921600 baud)
 ./scripts/monitor.sh [port]  # Default: /dev/ttyUSB0
 ```
 
 ---
 
-## 📏 Code Style & Conventions
+## Code Style & Conventions
 
-- **Language:** C++17 (`-std=gnu++17` on ESP32, `-std=c++17` for host tests).
-- **Yoda Comparisons:** Mandatory for all equality and inequality checks:
+- **Language:** C++17 (`-std=gnu++17` on ESP32, `-std=c++17` host tests).
+- **Yoda comparisons:** mandatory for all `==` / `!=`:
   ```cpp
   if (nullptr == target) { ... }
   if (0 == count) { ... }
   if (TargetZone::Near == zone) { ... }
   ```
-- **Braces:** Allman style (opening brace on a new line):
+- **Braces:** Allman (opening brace on new line):
   ```cpp
   void RadarEngine::update()
   {
@@ -106,36 +110,36 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telem
       }
   }
   ```
-- **Memory Safety & RAII:**
-  - Never use raw `new` or `delete`.
-  - Use `std::unique_ptr` for exclusive ownership, references for injected dependencies.
-- **Const Correctness:**
-  - Mark variables `const` by default.
-  - Pass non-primitive types by `const &`.
-  - Mark query methods `const`.
-- **Naming Conventions:**
-  - Types / Classes: `PascalCase` (`RadarEngine`, `TargetData`)
+- **Memory safety & RAII:**
+  - Never raw `new` / `delete`.
+  - `std::unique_ptr` for exclusive ownership; references for injected deps.
+- **Const correctness:**
+  - Variables `const` by default.
+  - Non-primitive params by `const &`.
+  - Query methods `const`.
+- **Naming:**
+  - Types / classes: `PascalCase` (`RadarEngine`, `TargetData`)
   - Interfaces: `I` prefix + `PascalCase` (`ISensor`, `IDisplay`)
-  - Functions / Methods: `snake_case()` (`scan()`, `active_target_count()`)
-  - Variables / Parameters: `snake_case`
-  - Private Member Variables: trailing underscore `snake_case_` (`sweep_angle_`, `sensor_`)
+  - Functions / methods: `snake_case()` (`scan()`, `active_target_count()`)
+  - Variables / params: `snake_case`
+  - Private members: trailing underscore `snake_case_` (`sweep_angle_`, `sensor_`)
   - Constants (`constexpr`, global/static): `UPPER_SNAKE_CASE` (`MAX_TARGETS`, `BAUD_RATE`)
   - Enum values: `PascalCase` (`ThreatLevel::Danger`)
-  - `const` locals and parameters: plain `snake_case`
+  - `const` locals + params: plain `snake_case`
 
 ---
 
-## 🧪 TDD Workflow (Red → Green → Refactor)
+## TDD Workflow (Red → Green → Refactor)
 
-1. **🔴 Red:** Write a failing test in `test_native/` first. Verify failure with `./scripts/test-native.sh`.
-2. **🟢 Green:** Implement the minimal code in `src/core/` to make the test pass.
-3. **🔵 Refactor:** Clean up code, verify Yoda style, const-correctness, and SOLID principles. Ensure all tests remain green.
+1. **Red:** failing test in `test_native/` first. Verify failure: `./scripts/test-native.sh`.
+2. **Green:** minimal code in `src/core/` to pass.
+3. **Refactor:** clean up; check Yoda, const-correctness, SOLID. All tests stay green.
 
 ---
 
-## 📝 Commit Conventions
+## Commit Conventions
 
-Every commit must follow this format with a committer sign-off:
+Every commit: this format + committer sign-off:
 
 ```
 [Type] Short summary description (max 72 chars)
@@ -146,21 +150,21 @@ Wrapped at 72 characters per line.
 Signed-off-by: JaWitold <witekkaras00@gmail.com>
 ```
 
-**Allowed Types:**
-- `[Feature]` — New functionality
-- `[Fix]` — Bug fix
-- `[Docs]` — Documentation updates
-- `[Style]` — Formatting / whitespace (no logic change)
-- `[Refactor]` — Restructuring without behavior change
-- `[Test]` — Test suite changes
-- `[Chore]` — Build system, CI, Docker, or dependency maintenance
-- `[Perf]` — Performance optimization
+**Allowed types:**
+- `[Feature]` — new functionality
+- `[Fix]` — bug fix
+- `[Docs]` — documentation
+- `[Style]` — formatting / whitespace, no logic change
+- `[Refactor]` — restructure, no behavior change
+- `[Test]` — test suite
+- `[Chore]` — build system, CI, Docker, deps
+- `[Perf]` — performance
 
 ---
 
-## 📡 Sensor Roadmap
+## Sensor Roadmap
 
-- **v1.0 (Primary):** HLK-LD2450 (24GHz FMCW mmWave, 3 simultaneous targets with X/Y coordinates and speed via UART).
+- **v1.0 (primary):** HLK-LD2450 (24GHz FMCW mmWave, 3 simultaneous targets, X/Y + speed via UART).
 - **Future:**
   - RCWL-0516 multi-sensor triangulation array (`RCWL0516TriangulationAdapter`).
-  - Ai-Thinker RD-03D wide-angle mmWave adapter (`RD03DAdapter`, 120° FoV).
+  - Ai-Thinker RD-03D wide-angle mmWave (`RD03DAdapter`, 120° FoV).

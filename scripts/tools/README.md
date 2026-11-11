@@ -5,7 +5,7 @@ Simulation, testing, and desktop telemetry tools managed with [`uv`](https://git
 ## Tools Included
 
 1. **`sim-radar` (`sensor_sim`):** Hexagonal multi-sensor protocol simulator (HLK-LD2450, RD-03D, RCWL-0516) streaming over USB-UART, virtual PTY, or TCP sockets.
-2. **`radar-gui` (`radar_gui`):** Tactical COD MW2 / R6 Siege radar HUD visualizer for serial telemetry.
+2. **`radar-gui` (`radar_gui`):** Desktop radar HUD (Tkinter) for serial/socket telemetry.
 
 ## Quickstart with `uv`
 
@@ -20,7 +20,7 @@ uv run sim-radar --sensor ld2450 --scenario patrol --pty
 uv run radar-gui --demo
 
 # Connect GUI to real hardware or PTY
-uv run radar-gui --port /dev/ttyUSB0 --baud 115200
+uv run radar-gui --port /dev/ttyUSB0 --baud 921600
 
 # Any pyserial URL works too: ESP32 WiFi display or simulator --socket
 uv run radar-gui --port socket://heartbeat-radar.local:3333

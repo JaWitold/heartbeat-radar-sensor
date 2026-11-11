@@ -1,8 +1,8 @@
-# Diagram Conventions & Repository Guide
+# Diagram Conventions
 
-This folder contains all architectural, protocol, and hardware wiring diagrams for the Heartbeat Radar Sensor project.
+Architecture, protocol, wiring diagrams.
 
-## Diagram Strategy
+## Tools
 
 | Domain | Tool | Source Format | Presentation |
 |--------|------|---------------|--------------|
@@ -11,12 +11,12 @@ This folder contains all architectural, protocol, and hardware wiring diagrams f
 
 ---
 
-## Directory Organization
+## Layout
 
 ```
 docs/diagrams/
 ├── README.md                 # This guide
-├── hardware/                 # Fritzing circuit diagrams
+├── hardware/                 # Fritzing circuit diagrams (.fzz/.svg planned, not committed yet)
 │   ├── README.md
 │   ├── esp32-ld2450-wiring.fzz
 │   ├── esp32-ld2450-wiring.svg
@@ -33,12 +33,12 @@ docs/diagrams/
 
 ---
 
-## Fritzing Export Workflow
+## Fritzing Export
 
-1. Open or create the circuit in Fritzing (`.fzz`).
-2. Go to **File > Export > as Image > SVG...**.
-3. Save the exported `.svg` in `docs/diagrams/hardware/` using the exact same basename as the `.fzz` file.
-4. Commit both the `.fzz` source and the `.svg` export in the same commit:
+1. Open/create circuit in Fritzing (`.fzz`).
+2. **File > Export > as Image > SVG...**.
+3. Save `.svg` in `docs/diagrams/hardware/`, same basename as `.fzz`.
+4. Commit `.fzz` and `.svg` together:
    ```bash
    git add docs/diagrams/hardware/esp32-ld2450-wiring.fzz docs/diagrams/hardware/esp32-ld2450-wiring.svg
    git commit -s -m "[Docs] Update LD2450 wiring diagram"

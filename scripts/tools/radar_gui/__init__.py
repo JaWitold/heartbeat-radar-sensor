@@ -1,3 +1,3 @@
 """
-Tactical Radar GUI Package.
+Radar desktop GUI package.
 """

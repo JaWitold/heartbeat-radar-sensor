@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# web.sh — Tactical Radar Web HUD & WebSocket Server Launcher (uv-powered)
+# web.sh — Radar Web HUD & WebSocket Server Launcher (uv-powered)
 # =============================================================================
 
 set -euo pipefail
@@ -14,7 +14,7 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 echo -e "${CYAN}====================================================${NC}"
-echo -e "${CYAN}   🎯 Heartbeat Radar — Web HUD & Stream Server    ${NC}"
+echo -e "${CYAN}   Heartbeat Radar — Web HUD & Stream Server    ${NC}"
 echo -e "${CYAN}====================================================${NC}"
 
 if command -v uv >/dev/null 2>&1; then

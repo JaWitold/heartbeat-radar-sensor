@@ -112,8 +112,46 @@ SCENARIO("Telemetry frame encodes the JSON line the HUDs decode", "[core][teleme
             REQUIRE(std::string::npos != alert_of(ThreatLevel::Safe).find("\"alert\":\"Safe\""));
             REQUIRE(std::string::npos != alert_of(ThreatLevel::Caution).find("\"alert\":\"Caution\""));
             REQUIRE(std::string::npos != alert_of(ThreatLevel::Danger).find("\"alert\":\"Danger\""));
-            REQUIRE(std::string::npos != alert_of(ThreatLevel::Critical).find("\"alert\":\"Critical\""));
             REQUIRE(std::string::npos != alert_of(ThreatLevel::NoSignal).find("\"alert\":\"NoSignal\""));
+        }
+    }
+
+    GIVEN("A valid IMU reading and calculated device orientation")
+    {
+        const std::vector<TargetData> targets{};
+        const ThreatAssessment threat = make_threat(ThreatLevel::Safe, 0.0f);
+
+        ImuData imu{};
+        imu.is_valid = true;
+        imu.accel    = {0.02f, 0.15f, 0.98f};
+        imu.gyro     = {0.1f, -0.2f, 0.0f};
+        imu.temp_c   = 24.5f;
+
+        Orientation orientation{1.2f, -3.4f, 45.0f};
+
+        WHEN("The frame is encoded with IMU telemetry")
+        {
+            const std::string line =
+                encode_telemetry_frame(0.0f, threat, targets, DANGER_M, CAUTION_M, &imu, &orientation);
+
+            THEN("The imu object is serialized with fixed-point accuracy")
+            {
+                REQUIRE(std::string::npos != line.find(",\"imu\":{\"pitch\":1.2,\"roll\":-3.4,\"yaw\":45.0,"
+                                                       "\"ax\":0.02,\"ay\":0.15,\"az\":0.98,"
+                                                       "\"gx\":0.1,\"gy\":-0.2,\"gz\":0.0,\"temp\":24.5}"));
+            }
+        }
+
+        WHEN("IMU is invalid")
+        {
+            imu.is_valid = false;
+            const std::string line =
+                encode_telemetry_frame(0.0f, threat, targets, DANGER_M, CAUTION_M, &imu, &orientation);
+
+            THEN("The imu object is omitted")
+            {
+                REQUIRE(std::string::npos == line.find("\"imu\":"));
+            }
         }
     }
 }

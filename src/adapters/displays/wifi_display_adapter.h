@@ -1,8 +1,6 @@
 #pragma once
 
-#include "core/target_data.h"
-#include "core/threat_assessment.h"
-#include "ports/i_display.h"
+#include "adapters/displays/i_telemetry_display.h"
 
 #ifdef ARDUINO
 #include <WiFi.h>
@@ -10,14 +8,13 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace hrs::adapters::displays
 {
 
 /// Streams the shared JSON telemetry line over a TCP server on WiFi-capable boards.
 /// HUDs connect to `socket://<hostname>.local:<port>` (gui.sh --port, web.sh --serial); one client at a time.
-class WifiDisplayAdapter : public ports::IDisplay
+class WifiDisplayAdapter : public ITelemetryDisplay
 {
 public:
     static constexpr uint16_t DEFAULT_TCP_PORT    = 3333;
@@ -39,15 +36,11 @@ public:
     ~WifiDisplayAdapter() override = default;
 
     bool init() override;
-    void clear() override;
-    void draw_sweep(const float angle_deg) override;
-    void draw_radar(const std::vector<core::TargetData>& targets) override;
-    void draw_alert(const core::ThreatAssessment& threat) override;
-    void flush() override;
+
+protected:
+    void send_line(const std::string& line) override;
 
 private:
-    void send_line(const std::string& line);
-
 #ifdef ARDUINO
     const char* ssid_;
     const char* password_;
@@ -58,11 +51,6 @@ private:
 #else
     std::string last_frame_{};
 #endif
-    float danger_distance_m_;
-    float caution_distance_m_;
-    float sweep_angle_deg_{0.0f};
-    core::ThreatAssessment threat_{};
-    std::vector<core::TargetData> targets_{};
 };
 
 } // namespace hrs::adapters::displays

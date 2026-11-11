@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# sim-tmux.sh — Run Radar Simulator + Tactical HUD inside tmux
+# sim-tmux.sh — Run Radar Simulator + HUD inside tmux
 # Heartbeat Radar Sensor (ESP32 + HLK-LD2450)
 # =============================================================================
 # Spawns the radar sensor simulator on a virtual Linux PTY in one pane and
-# automatically launches the Tactical Radar Desktop HUD connected to that PTY
+# automatically launches the Radar Desktop HUD connected to that PTY
 # in a second pane.
 # =============================================================================
 
@@ -32,7 +32,7 @@ usage() {
     cat << EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Runs the Heartbeat Radar sensor simulator and tactical HUD together
+Runs the Heartbeat Radar sensor simulator and HUD together
 inside a split tmux session connected via a virtual serial PTY.
 
 Options:
@@ -45,7 +45,7 @@ Options:
 
 Examples:
   ./scripts/sim-tmux.sh                       # Desktop Tkinter GUI with 3 targets
-  ./scripts/sim-tmux.sh --web                 # Web Browser HUD at http://localhost:8080
+  ./scripts/sim-tmux.sh --web                 # Web Browser HUD at http://localhost:8088
   ./scripts/sim-tmux.sh --scenario patrol     # Patrolling target (1m to 5m)
   ./scripts/sim-tmux.sh --sensor rd03d        # Wide-angle RD-03D sensor
   ./scripts/sim-tmux.sh --kill                # Stop the running session
@@ -97,7 +97,7 @@ if ! command -v tmux >/dev/null 2>&1; then
 fi
 
 echo -e "${CYAN}====================================================${NC}"
-echo -e "${CYAN}   🎯 Heartbeat Radar — tmux Simulation Runner     ${NC}"
+echo -e "${CYAN}   Heartbeat Radar — tmux Simulation Runner     ${NC}"
 echo -e "${CYAN}====================================================${NC}"
 
 # Kill any existing session with the same name
@@ -154,7 +154,7 @@ fi
 tmux send-keys -t "$SESSION_NAME:0.1" "$HUD_CMD" C-m
 
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${GREEN}   ✅ Simulation running in tmux session '${SESSION_NAME}'${NC}"
+echo -e "${GREEN}   Simulation running in tmux session '${SESSION_NAME}'${NC}"
 echo -e "${GREEN}   - Pane 0: Radar Simulator (${SENSOR} / ${SCENARIO})${NC}"
 echo -e "${GREEN}   - Pane 1: ${HUD_LABEL}${NC}"
 echo -e "${GREEN}====================================================${NC}"

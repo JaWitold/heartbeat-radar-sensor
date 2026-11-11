@@ -1,8 +1,6 @@
 #include "wifi_display_adapter.h"
 
-#include "core/target_data.h"
-#include "core/telemetry_frame.h"
-#include "core/threat_assessment.h"
+#include "adapters/displays/i_telemetry_display.h"
 
 #ifdef ARDUINO
 #include <ESPmDNS.h>
@@ -10,7 +8,6 @@
 #endif
 
 #include <string>
-#include <vector>
 
 namespace hrs::adapters::displays
 {
@@ -22,13 +19,12 @@ WifiDisplayAdapter::WifiDisplayAdapter(const char* ssid,
                                        const char* hostname,
                                        const float danger_distance_m,
                                        const float caution_distance_m)
-    : ssid_(ssid)
+    : ITelemetryDisplay(danger_distance_m, caution_distance_m)
+    , ssid_(ssid)
     , password_(password)
     , hostname_(hostname)
     , port_(port)
     , server_(port)
-    , danger_distance_m_(danger_distance_m)
-    , caution_distance_m_(caution_distance_m)
 {
 }
 
@@ -73,8 +69,7 @@ void WifiDisplayAdapter::send_line(const std::string& line)
 #else
 
 WifiDisplayAdapter::WifiDisplayAdapter(const float danger_distance_m, const float caution_distance_m)
-    : danger_distance_m_(danger_distance_m)
-    , caution_distance_m_(caution_distance_m)
+    : ITelemetryDisplay(danger_distance_m, caution_distance_m)
 {
 }
 
@@ -94,31 +89,5 @@ void WifiDisplayAdapter::send_line(const std::string& line)
 }
 
 #endif
-
-void WifiDisplayAdapter::clear()
-{
-    targets_.clear();
-}
-
-void WifiDisplayAdapter::draw_sweep(const float angle_deg)
-{
-    sweep_angle_deg_ = angle_deg;
-}
-
-void WifiDisplayAdapter::draw_radar(const std::vector<core::TargetData>& targets)
-{
-    targets_ = targets;
-}
-
-void WifiDisplayAdapter::draw_alert(const core::ThreatAssessment& threat)
-{
-    threat_ = threat;
-}
-
-void WifiDisplayAdapter::flush()
-{
-    send_line(
-        core::encode_telemetry_frame(sweep_angle_deg_, threat_, targets_, danger_distance_m_, caution_distance_m_));
-}
 
 } // namespace hrs::adapters::displays
