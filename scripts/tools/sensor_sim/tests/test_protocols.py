@@ -60,6 +60,37 @@ class TestSensorProtocols(unittest.TestCase):
         self.assertTrue(frame.startswith(b"$RC"))
         self.assertTrue(frame.endswith(b"\r\n"))
 
+    def test_telemetry_encoder_with_imu(self):
+        encoder = get_protocol("telemetry")
+        self.assertEqual(encoder.default_baud_rate, 921600)
+        targets = [
+            SimulatedTarget(id=1, x=0.5, y=1.2, speed=-0.2, is_valid=True)
+        ]
+        frame = encoder.encode_frame(targets)
+        self.assertTrue(frame.endswith(b"\n"))
+        import json
+        data = json.loads(frame.decode("utf-8"))
+        self.assertEqual(data["type"], "radar_frame")
+        self.assertIn("targets", data)
+        self.assertEqual(len(data["targets"]), 1)
+        self.assertEqual(data["targets"][0]["threat_zone"], "Danger")
+        self.assertIn("imu", data)
+        self.assertIn("pitch", data["imu"])
+        self.assertIn("roll", data["imu"])
+        self.assertIn("yaw", data["imu"])
+        self.assertIn("az", data["imu"])
+
+    def test_telemetry_threat_matches_firmware_evaluator(self):
+        # DistanceThreatEvaluator: nearest target sets the alert, severity = 1 - d / max_distance (6 m)
+        import json
+        frame = get_protocol("telemetry").encode_frame([
+            SimulatedTarget(id=1, x=0.0, y=4.0, speed=0.0, is_valid=True),
+            SimulatedTarget(id=2, x=0.0, y=1.0, speed=0.0, is_valid=True),
+        ])
+        data = json.loads(frame)
+        self.assertEqual(data["alert"], "Danger")
+        self.assertAlmostEqual(data["severity"], 0.83, places=2)
+
     def test_patrol_scenario_bounds(self):
         scenario = get_scenario("patrol")
         # Step through 10 seconds of updates

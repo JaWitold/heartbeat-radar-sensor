@@ -31,8 +31,12 @@ Options:
                                   wifi (TCP telemetry; WiFi boards only; needs
                                         env WIFI_SSID and WIFI_PASSWORD)
                                   Default: serial
+  -i, --imu, --imus LIST        Inertial measurement unit / motion module(s):
+                                  none | mpu6050
+                                  Default: none
   -f, --flag, --define MACRO    Extra preprocessor definition, repeated:
                                   Example: -f RADAR_DANGER_DISTANCE_M=2.0f
+                                  Example: -f RADAR_MOUNTING_YAW_DEG=45.0f
                                   Example: -f WIFI_TCP_PORT=4000
                                   (adapter tunables only; board wiring lives in platformio.ini)
   -h, --help                    Show this help message
@@ -42,6 +46,7 @@ EOF
 # Collect sensor and display arguments (supports repeated flags or comma-separated lists)
 COLLECTED_SENSORS=()
 COLLECTED_DISPLAYS=()
+COLLECTED_IMUS=()
 COLLECTED_DEFINES=()
 
 while [[ $# -gt 0 ]]; do
@@ -61,6 +66,13 @@ while [[ $# -gt 0 ]]; do
             IFS=',' read -ra ADDR <<< "$2"
             for i in "${ADDR[@]}"; do
                 COLLECTED_DISPLAYS+=("$i")
+            done
+            shift 2
+            ;;
+        -i|--imu|--imus)
+            IFS=',' read -ra ADDR <<< "$2"
+            for i in "${ADDR[@]}"; do
+                COLLECTED_IMUS+=("$i")
             done
             shift 2
             ;;
@@ -87,6 +99,9 @@ fi
 if [ ${#COLLECTED_DISPLAYS[@]} -eq 0 ]; then
     COLLECTED_DISPLAYS=("serial")
 fi
+if [ ${#COLLECTED_IMUS[@]} -eq 0 ]; then
+    COLLECTED_IMUS=("none")
+fi
 
 # Reject names main.cpp has no adapter for, instead of silently building something else
 for s in "${COLLECTED_SENSORS[@]}"; do
@@ -94,6 +109,9 @@ for s in "${COLLECTED_SENSORS[@]}"; do
 done
 for d in "${COLLECTED_DISPLAYS[@]}"; do
     case "$d" in serial|st7789|wifi) ;; *) error "Unsupported display: $d"; exit 1 ;; esac
+done
+for m in "${COLLECTED_IMUS[@]}"; do
+    case "$m" in none|mpu6050) ;; *) error "Unsupported IMU: $m"; exit 1 ;; esac
 done
 
 # Build preprocessor flags
@@ -120,6 +138,14 @@ if [ ${#COLLECTED_DISPLAYS[@]} -gt 1 ]; then
     BUILD_FLAGS+="-DUSE_COMPOSITE_DISPLAY_BROADCAST=1 "
     info "             -> Multi-display broadcasting active (${#COLLECTED_DISPLAYS[@]} sinks)"
 fi
+
+info "  IMU(s):    ${COLLECTED_IMUS[*]}"
+for m in "${COLLECTED_IMUS[@]}"; do
+    if [ "$m" != "none" ]; then
+        FLAG="-DENABLE_IMU_$(echo "$m" | tr '[:lower:]' '[:upper:]')=1"
+        BUILD_FLAGS+="${FLAG} "
+    fi
+done
 
 if [[ " ${COLLECTED_DISPLAYS[*]} " == *" wifi "* ]]; then
     case "$BOARD" in esp32dev) ;; *) error "Display 'wifi' needs a WiFi-capable board, got: $BOARD"; exit 1 ;; esac

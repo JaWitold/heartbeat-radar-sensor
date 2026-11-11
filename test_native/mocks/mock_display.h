@@ -42,6 +42,21 @@ public:
         last_threat_ = threat;
     }
 
+    void draw_attitude(const core::Orientation& orientation, const core::ImuData* imu) override
+    {
+        ++draw_attitude_call_count_;
+        last_orientation_ = orientation;
+        if (nullptr != imu)
+        {
+            last_imu_ = *imu;
+            has_imu_  = true;
+        }
+        else
+        {
+            has_imu_ = false;
+        }
+    }
+
     void flush() override
     {
         ++flush_call_count_;
@@ -87,6 +102,26 @@ public:
         return draw_alert_call_count_;
     }
 
+    [[nodiscard]] uint32_t draw_attitude_call_count() const
+    {
+        return draw_attitude_call_count_;
+    }
+
+    [[nodiscard]] const core::Orientation& last_orientation() const
+    {
+        return last_orientation_;
+    }
+
+    [[nodiscard]] const core::ImuData& last_imu() const
+    {
+        return last_imu_;
+    }
+
+    [[nodiscard]] bool has_imu() const
+    {
+        return has_imu_;
+    }
+
     [[nodiscard]] const core::ThreatAssessment& last_threat() const
     {
         return last_threat_;
@@ -107,6 +142,10 @@ private:
     std::vector<core::TargetData> last_targets_{};
     uint32_t draw_alert_call_count_{0};
     core::ThreatAssessment last_threat_{};
+    uint32_t draw_attitude_call_count_{0};
+    core::Orientation last_orientation_{};
+    core::ImuData last_imu_{};
+    bool has_imu_{false};
     uint32_t flush_call_count_{0};
 };
 

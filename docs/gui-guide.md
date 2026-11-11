@@ -33,7 +33,7 @@ cd scripts/tools && uv run radar-gui --demo
 ### 2. Connected to Physical ESP32 Board
 When the ESP32 is plugged in via USB and streaming telemetry over UART:
 ```bash
-./scripts/gui.sh --port /dev/ttyUSB0 --baud 115200
+./scripts/gui.sh --port /dev/ttyUSB0 --baud 921600
 ```
 
 ---
@@ -83,7 +83,7 @@ If you prefer viewing the radar in a web browser, on a mobile device/tablet, or 
 ./scripts/web.sh --serial /dev/ttyUSB0 --raw
 
 # Live ESP32 telemetry feed:
-./scripts/web.sh --serial /dev/ttyUSB0 --baud 115200
+./scripts/web.sh --serial /dev/ttyUSB0 --baud 921600
 
 # Full tmux simulation with Web HUD:
 ./scripts/sim-tmux.sh --web

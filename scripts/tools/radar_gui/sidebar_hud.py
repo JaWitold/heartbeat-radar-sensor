@@ -4,8 +4,8 @@ Sidebar HUD: Connection controls, target status table, and telemetry stats.
 
 import tkinter as tk
 from tkinter import ttk
-from typing import Callable, Dict, List
-from .protocol_decoders import RadarContact, zone_of
+from typing import Callable, Dict, List, Optional
+from .protocol_decoders import ImuTelemetry, RadarContact, zone_of
 
 
 class SidebarHUD(tk.Frame):
@@ -32,6 +32,7 @@ class SidebarHUD(tk.Frame):
 
         self._build_header()
         self._build_connection_panel()
+        self._build_attitude_panel()
         self._build_target_table()
         self._build_status_bar()
 
@@ -114,6 +115,49 @@ class SidebarHUD(tk.Frame):
         port = self.port_var.get().strip()
         baud = int(self.baud_var.get().strip())
         self._on_connect(port, baud)
+
+    def _build_attitude_panel(self) -> None:
+        frame = tk.LabelFrame(
+            self,
+            text=" ATTITUDE / IMU ",
+            font=("Courier", 9, "bold"),
+            fg=self.COLOR_FG,
+            bg=self.COLOR_BG,
+            padx=8,
+            pady=6,
+        )
+        frame.pack(fill="x", pady=(0, 10))
+
+        # Row 1: Pitch & Roll
+        row1 = tk.Frame(frame, bg=self.COLOR_BG)
+        row1.pack(fill="x", pady=1)
+        self.lbl_pitch = tk.Label(row1, text="PITCH:  +0.0°", font=("Courier", 8), fg=self.COLOR_FG, bg=self.COLOR_BG)
+        self.lbl_pitch.pack(side="left")
+        self.lbl_roll = tk.Label(row1, text="ROLL:  +0.0°", font=("Courier", 8), fg=self.COLOR_FG, bg=self.COLOR_BG)
+        self.lbl_roll.pack(side="right")
+
+        # Row 2: Yaw & Temp
+        row2 = tk.Frame(frame, bg=self.COLOR_BG)
+        row2.pack(fill="x", pady=1)
+        self.lbl_yaw = tk.Label(row2, text="YAW:    +0.0°", font=("Courier", 8), fg=self.COLOR_FG, bg=self.COLOR_BG)
+        self.lbl_yaw.pack(side="left")
+        self.lbl_temp = tk.Label(row2, text="TEMP: --.-°C", font=("Courier", 8), fg=self.COLOR_AMBER, bg=self.COLOR_BG)
+        self.lbl_temp.pack(side="right")
+
+        # Row 3: Accel G-force
+        row3 = tk.Frame(frame, bg=self.COLOR_BG)
+        row3.pack(fill="x", pady=1)
+        self.lbl_accel = tk.Label(
+            row3, text="ACC: 0.00 0.00 1.00 G", font=("Courier", 8), fg="#4E8C6A", bg=self.COLOR_BG
+        )
+        self.lbl_accel.pack(anchor="w")
+
+    def update_attitude(self, imu: ImuTelemetry) -> None:
+        self.lbl_pitch.config(text=f"PITCH: {imu.pitch:+5.1f}°")
+        self.lbl_roll.config(text=f"ROLL: {imu.roll:+5.1f}°")
+        self.lbl_yaw.config(text=f"YAW:  {imu.yaw:+5.1f}°")
+        self.lbl_temp.config(text=f"TEMP: {imu.temp:4.1f}°C")
+        self.lbl_accel.config(text=f"ACC: {imu.ax:+.2f} {imu.ay:+.2f} {imu.az:+.2f} G")
 
     def _build_target_table(self) -> None:
         table_frame = tk.LabelFrame(

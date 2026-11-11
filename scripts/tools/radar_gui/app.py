@@ -6,10 +6,10 @@ import argparse
 import sys
 import time
 import tkinter as tk
-from typing import List
+from typing import List, Optional
 
 from .canvas_radar import RadarCanvas
-from .protocol_decoders import RadarContact
+from .protocol_decoders import ImuTelemetry, RadarContact
 from .serial_reader import SerialReaderThread
 from .sidebar_hud import SidebarHUD
 
@@ -17,7 +17,7 @@ from .sidebar_hud import SidebarHUD
 class RadarGuiApp:
     """Tactical Radar Desktop Telemetry Window."""
 
-    def __init__(self, port: str = None, baud: int = 115200, demo: bool = False):
+    def __init__(self, port: str = None, baud: int = 921600, demo: bool = False):
         self.root = tk.Tk()
         self.root.title("Tactical Heartbeat Radar HUD")
         self.root.geometry("920x620")
@@ -28,13 +28,15 @@ class RadarGuiApp:
         self._fps = 0.0
         self._fps_counter = 0
         self._fps_timer = time.monotonic()
-        self._latest_contacts: List[RadarContact] = []
+        # Written by the reader thread, applied in _render_loop: Tk widgets are main-thread only.
+        self._latest_contacts: Optional[List[RadarContact]] = None
+        self._latest_imu: Optional[ImuTelemetry] = None
 
         # Build subcomponents
         self._build_layout()
 
         # Serial worker thread
-        self.reader = SerialReaderThread(self._on_contacts_received)
+        self.reader = SerialReaderThread(self._on_contacts_received, self._on_imu_received)
 
         # Handle auto-start flags
         if demo:
@@ -68,6 +70,9 @@ class RadarGuiApp:
     def _on_contacts_received(self, contacts: List[RadarContact]) -> None:
         self._latest_contacts = contacts
 
+    def _on_imu_received(self, imu: ImuTelemetry) -> None:
+        self._latest_imu = imu
+
     def _connect_serial(self, port: str, baud: int) -> None:
         self.reader.start_serial(port, baud)
         self.sidebar.update_status(True, f"UART {baud}")
@@ -94,9 +99,13 @@ class RadarGuiApp:
 
         # Update radar sweep and contacts
         self.canvas.advance_sweep(dt)
-        if self._latest_contacts:
-            self.canvas.update_contacts(self._latest_contacts)
-            self.sidebar.update_targets(self._latest_contacts, self._fps)
+        contacts, self._latest_contacts = self._latest_contacts, None
+        if contacts is not None:  # [] clears the table; stale blips fade out on the canvas
+            self.canvas.update_contacts(contacts)
+            self.sidebar.update_targets(contacts, self._fps)
+        imu, self._latest_imu = self._latest_imu, None
+        if imu is not None:
+            self.sidebar.update_attitude(imu)
 
         self.canvas.redraw()
 
@@ -114,7 +123,7 @@ class RadarGuiApp:
 def parse_args():
     parser = argparse.ArgumentParser(description="Tactical Heartbeat Radar Desktop HUD")
     parser.add_argument("--port", type=str, help="Serial port (e.g. /dev/ttyUSB0 or /dev/pts/15)")
-    parser.add_argument("--baud", type=int, default=115200, help="Baud rate (default: 115200)")
+    parser.add_argument("--baud", type=int, default=921600, help="Baud rate (default: 921600)")
     parser.add_argument("--demo", action="store_true", help="Launch in standalone demo mode")
     parser.add_argument("--raw", action="store_true", help="Expect raw 256000 baud LD2450 sensor packets")
     return parser.parse_args()

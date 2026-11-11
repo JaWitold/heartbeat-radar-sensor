@@ -7,11 +7,14 @@ from ..interfaces import ISensorProtocol
 from .ld2450 import LD2450Encoder
 from .rd03d import RD03DEncoder
 from .rcwl0516 import RCWL0516ArrayEncoder
+from .telemetry import ESP32TelemetryEncoder
 
 PROTOCOLS: Dict[str, Type[ISensorProtocol]] = {
     "ld2450": LD2450Encoder,
     "rd03d": RD03DEncoder,
     "rcwl0516": RCWL0516ArrayEncoder,
+    "telemetry": ESP32TelemetryEncoder,
+    "esp32": ESP32TelemetryEncoder,
 }
 
 

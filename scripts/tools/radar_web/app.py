@@ -41,7 +41,7 @@ def parse_args():
         "--baud",
         type=int,
         default=0,
-        help="Baud rate (default: 256000 if --raw else 115200)",
+        help="Baud rate (default: 256000 if --raw else 921600)",
     )
     parser.add_argument(
         "--demo",
@@ -79,7 +79,7 @@ async def run_server(args):
 
     baud_rate = args.baud
     if baud_rate <= 0:
-        baud_rate = 256000 if args.raw else 115200
+        baud_rate = 256000 if args.raw else 921600
 
     server = RadarWebServer(
         host=args.host,

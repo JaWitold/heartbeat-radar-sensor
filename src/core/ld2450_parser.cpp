@@ -54,33 +54,6 @@ bool LD2450Parser::parse_byte(const uint8_t byte)
     return false;
 }
 
-std::vector<TargetData> LD2450Parser::parse_buffer(const uint8_t* data, const size_t length)
-{
-    if (nullptr == data || 0 == length)
-    {
-        return latest_targets_;
-    }
-
-    std::vector<TargetData> result{};
-    bool new_frame = false;
-
-    for (size_t i = 0; i < length; ++i)
-    {
-        if (true == parse_byte(data[i]))
-        {
-            new_frame = true;
-            result    = latest_targets_;
-        }
-    }
-
-    if (true == new_frame)
-    {
-        return result;
-    }
-
-    return latest_targets_;
-}
-
 const std::vector<TargetData>& LD2450Parser::get_latest_targets() const
 {
     return latest_targets_;

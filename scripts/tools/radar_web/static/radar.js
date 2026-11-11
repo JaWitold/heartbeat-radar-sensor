@@ -17,6 +17,10 @@
     const threatIndicator = document.getElementById("threat-indicator");
     const threatLevel = document.getElementById("threat-level");
     const btnAudio = document.getElementById("btn-audio");
+    const imuPitchRoll = document.getElementById("imu-pitch-roll");
+    const imuYaw = document.getElementById("imu-yaw");
+    const imuAccel = document.getElementById("imu-accel");
+    const imuTemp = document.getElementById("imu-temp");
 
     // --- Radar Constants ---
     const MAX_RANGE_M = 6.0;
@@ -35,15 +39,36 @@
     let audioCtx = null;
     let lastBeepTime = 0;
 
-    // HiDPI Canvas setup
+    // --- Canvas Dimensions & HiDPI Setup ---
+    let canvasWidth = 0;
+    let canvasHeight = 0;
+
     function resizeCanvas() {
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
+        const w = Math.floor(rect.width);
+        const h = Math.floor(rect.height);
+        if (w === 0 || h === 0) return;
+
+        canvasWidth = w;
+        canvasHeight = h;
+        const targetWidth = Math.floor(w * dpr);
+        const targetHeight = Math.floor(h * dpr);
+        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    window.addEventListener("resize", resizeCanvas);
+
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            resizeCanvas();
+        });
+        ro.observe(canvas.parentElement || canvas);
+    } else {
+        window.addEventListener("resize", resizeCanvas);
+    }
     resizeCanvas();
 
     // --- Web Audio Alert ---
@@ -97,6 +122,9 @@
                 if (data.type === "radar_frame" && Array.isArray(data.contacts)) {
                     updateContacts(data.contacts);
                 }
+                if (data.imu) {
+                    updateImu(data.imu);
+                }
             } catch (err) {
                 console.error("Failed to parse WebSocket JSON:", err);
             }
@@ -115,6 +143,17 @@
     connectWebSocket();
 
     // --- Telemetry & Blip Updates ---
+    function updateImu(imu) {
+        if (!imuPitchRoll) return;
+        const pitchSign = imu.pitch >= 0 ? "+" : "";
+        const rollSign = imu.roll >= 0 ? "+" : "";
+        const yawSign = imu.yaw >= 0 ? "+" : "";
+        imuPitchRoll.textContent = `${pitchSign}${imu.pitch.toFixed(1)}° / ${rollSign}${imu.roll.toFixed(1)}°`;
+        if (imuYaw) imuYaw.textContent = `${yawSign}${imu.yaw.toFixed(1)}°`;
+        if (imuAccel) imuAccel.textContent = `${imu.ax.toFixed(2)} / ${imu.ay.toFixed(2)} / ${imu.az.toFixed(2)} G`;
+        if (imuTemp) imuTemp.textContent = `${imu.temp.toFixed(1)}°C`;
+    }
+
     function updateContacts(newContacts) {
         const now = performance.now();
         contacts = newContacts.map(c => ({
@@ -208,52 +247,76 @@
     }
 
     function drawRadar() {
-        const width = canvas.getBoundingClientRect().width;
-        const height = canvas.getBoundingClientRect().height;
+        if (canvasWidth === 0 || canvasHeight === 0) {
+            resizeCanvas();
+            if (canvasWidth === 0 || canvasHeight === 0) return;
+        }
 
-        ctx.clearRect(0, 0, width, height);
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        const originX = width / 2;
-        const originY = height * 0.90;
-        const maxRadius = Math.min(width * 0.45, height * 0.82);
+        // 120° sector fits:
+        // Horizontal span = 2 * R * sin(60°) = 1.732 * R.
+        // Vertical span = R.
+        // Margins: 32px left/right, 24px top/bottom
+        const availW = Math.max(100, canvasWidth - 64);
+        const availH = Math.max(100, canvasHeight - 56);
+        const maxRadius = Math.max(60, Math.min(availW / 1.732, availH));
+
+        const originX = Math.round(canvasWidth / 2);
+        const originY = Math.round((canvasHeight + maxRadius) / 2);
 
         // Danger border flash if any target is in danger zone
         const isHazard = contacts.some(c => c.threat_zone === "Danger");
         if (isHazard) {
             ctx.save();
-            ctx.strokeStyle = "rgba(255, 51, 51, 0.6)";
-            ctx.lineWidth = 6;
-            ctx.strokeRect(3, 3, width - 6, height - 6);
+            ctx.strokeStyle = "rgba(255, 51, 51, 0.65)";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(2, 2, canvasWidth - 4, canvasHeight - 4);
             ctx.restore();
         }
 
-        // 1. Draw Range Rings (1m to 6m)
+        const arcStart = (-90 + FOV_MIN_DEG) * Math.PI / 180;
+        const arcEnd = (-90 + FOV_MAX_DEG) * Math.PI / 180;
+
         ctx.save();
+
+        // 1. Radar Sector Backdrop
+        ctx.beginPath();
+        ctx.moveTo(originX, originY);
+        ctx.arc(originX, originY, maxRadius, arcStart, arcEnd);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(4, 20, 12, 0.70)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0, 255, 136, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 2. Concentric Range Rings (1m to 6m)
         for (let r = 1; r <= 6; r++) {
             const radius = (r / MAX_RANGE_M) * maxRadius;
             ctx.beginPath();
-            // Arc from -60° to +60° relative to forward (-90° in standard math)
-            const startAngle = (-90 + FOV_MIN_DEG) * Math.PI / 180;
-            const endAngle = (-90 + FOV_MAX_DEG) * Math.PI / 180;
-            ctx.arc(originX, originY, radius, startAngle, endAngle);
+            ctx.arc(originX, originY, radius, arcStart, arcEnd);
 
-            if (r === 1 || r === 2) {
-                ctx.strokeStyle = "rgba(255, 51, 51, 0.25)";
+            if (r <= 2) {
+                ctx.strokeStyle = "rgba(255, 51, 51, 0.35)";
             } else if (r === 3) {
-                ctx.strokeStyle = "rgba(255, 170, 0, 0.25)";
+                ctx.strokeStyle = "rgba(255, 170, 0, 0.30)";
             } else {
-                ctx.strokeStyle = "rgba(0, 255, 136, 0.20)";
+                ctx.strokeStyle = "rgba(0, 255, 136, 0.22)";
             }
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Ring Label
-            ctx.fillStyle = "rgba(0, 255, 136, 0.45)";
+            // Distance labels along centerline
+            ctx.fillStyle = (r <= 2) ? "rgba(255, 80, 80, 0.75)" : "rgba(0, 255, 136, 0.65)";
             ctx.font = "10px monospace";
-            ctx.fillText(`${r}m`, originX + 6, originY - radius - 2);
+            ctx.textAlign = "center";
+            ctx.fillText(`${r}m`, originX, originY - radius - 3);
         }
 
-        // 2. Draw Azimuth Rays
+        // 3. Azimuth Rays
         const rays = [-60, -45, -30, 0, 30, 45, 60];
         rays.forEach(deg => {
             const rad = (-90 + deg) * Math.PI / 180;
@@ -263,68 +326,84 @@
             ctx.beginPath();
             ctx.moveTo(originX, originY);
             ctx.lineTo(rx, ry);
-            ctx.strokeStyle = (deg === 0) ? "rgba(0, 255, 136, 0.35)" : "rgba(0, 255, 136, 0.15)";
+            ctx.strokeStyle = (deg === 0) ? "rgba(0, 255, 136, 0.50)" : "rgba(0, 255, 136, 0.20)";
             ctx.lineWidth = (deg === 0) ? 1.5 : 1;
             ctx.stroke();
 
-            // Ray label
+            // Degree label
             const labelDist = maxRadius + 14;
             const lx = originX + Math.cos(rad) * labelDist;
-            const ly = originY + Math.sin(rad) * labelDist;
-            ctx.fillStyle = "rgba(0, 255, 136, 0.5)";
+            const ly = originY + Math.sin(rad) * labelDist + 4;
+            ctx.fillStyle = (deg === 0) ? "rgba(0, 255, 136, 0.90)" : "rgba(0, 255, 136, 0.55)";
             ctx.font = "9px monospace";
             ctx.textAlign = "center";
             ctx.fillText(`${deg > 0 ? "+" : ""}${deg}°`, lx, ly);
         });
 
-        // 3. Draw Trailing Phosphor Sweep Fan
-        const trailSpan = 18; // degrees of trail
-        const trailRad = (-90 + sweepAngle) * Math.PI / 180;
-        const trailBackRad = (-90 + (sweepAngle - sweepDirection * trailSpan)) * Math.PI / 180;
+        // 4. Phosphor Sweep Fan (multi-slice angular fade clamped to FOV)
+        const trailSpanDeg = 20.0;
+        const trailSteps = 12;
+        for (let i = 0; i < trailSteps; i++) {
+            const frac1 = i / trailSteps;
+            const frac2 = (i + 1) / trailSteps;
+            const a1_deg = sweepAngle - sweepDirection * (frac1 * trailSpanDeg);
+            const a2_deg = sweepAngle - sweepDirection * (frac2 * trailSpanDeg);
 
-        const grad = ctx.createRadialGradient(originX, originY, 10, originX, originY, maxRadius);
-        grad.addColorStop(0, "rgba(0, 255, 136, 0.25)");
-        grad.addColorStop(1, "rgba(0, 255, 136, 0.0)");
+            // Clamp both angles to FOV so trail never spills outside radar sector
+            const ca1_deg = Math.max(FOV_MIN_DEG, Math.min(FOV_MAX_DEG, a1_deg));
+            const ca2_deg = Math.max(FOV_MIN_DEG, Math.min(FOV_MAX_DEG, a2_deg));
+            if (Math.abs(ca1_deg - ca2_deg) < 0.01) continue;
 
-        ctx.beginPath();
-        ctx.moveTo(originX, originY);
-        ctx.arc(
-            originX, originY, maxRadius,
-            Math.min(trailRad, trailBackRad),
-            Math.max(trailRad, trailBackRad)
-        );
-        ctx.closePath();
-        ctx.fillStyle = grad;
-        ctx.fill();
+            const r1 = (-90 + ca1_deg) * Math.PI / 180;
+            const r2 = (-90 + ca2_deg) * Math.PI / 180;
+            const alpha = 0.24 * (1.0 - frac1);
 
-        // 4. Draw Leading Sweep Beam Line
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+            ctx.arc(originX, originY, maxRadius, Math.min(r1, r2), Math.max(r1, r2));
+            ctx.closePath();
+            ctx.fillStyle = `rgba(0, 255, 136, ${alpha.toFixed(3)})`;
+            ctx.fill();
+        }
+
+        // 5. Leading Sweep Beam Line
+        const beamRad = (-90 + sweepAngle) * Math.PI / 180;
         ctx.beginPath();
         ctx.moveTo(originX, originY);
         ctx.lineTo(
-            originX + Math.cos(trailRad) * maxRadius,
-            originY + Math.sin(trailRad) * maxRadius
+            originX + Math.cos(beamRad) * maxRadius,
+            originY + Math.sin(beamRad) * maxRadius
         );
         ctx.strokeStyle = "#FFFFFF";
         ctx.shadowColor = "#00FF88";
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 6;
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.shadowBlur = 0; // reset
+        ctx.shadowBlur = 0;
 
-        // 5. Draw Sensor Origin Node
+        // 6. Sensor Origin Node & Forward Triangle
         ctx.beginPath();
         ctx.arc(originX, originY, 4, 0, Math.PI * 2);
         ctx.fillStyle = "#00FF88";
         ctx.fill();
 
-        // 6. Draw Tracked Contacts (Blips)
+        ctx.beginPath();
+        ctx.moveTo(originX, originY - maxRadius - 2);
+        ctx.lineTo(originX - 5, originY - maxRadius + 6);
+        ctx.lineTo(originX + 5, originY - maxRadius + 6);
+        ctx.closePath();
+        ctx.fillStyle = "#00FF88";
+        ctx.fill();
+
+        // 7. Tracked Contacts (Blips)
         const now = performance.now();
         contacts.forEach(c => {
             const ageSec = (now - c.receivedAt) / 1000.0;
-            if (ageSec > 3.0) return; // Target timed out
+            if (ageSec > 3.0) return; // Stale
 
             const opacity = Math.max(0.15, 1.0 - ageSec / 3.0);
-            const normDist = Math.min(1.0, c.distance / MAX_RANGE_M);
+            const dist = Math.min(MAX_RANGE_M, Math.max(0, c.distance));
+            const normDist = dist / MAX_RANGE_M;
             const screenDist = normDist * maxRadius;
             const targetRad = (-90 + c.angle_deg) * Math.PI / 180;
 
@@ -343,7 +422,7 @@
 
             // Outer Pulse Halo
             ctx.beginPath();
-            ctx.arc(bx, by, 8, 0, Math.PI * 2);
+            ctx.arc(bx, by, 7, 0, Math.PI * 2);
             ctx.fillStyle = `${glow}${0.35 * opacity})`;
             ctx.fill();
 
@@ -357,10 +436,10 @@
             ctx.shadowBlur = 0;
 
             // Target Tag Label
-            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
             ctx.font = "bold 9px monospace";
             ctx.textAlign = "left";
-            ctx.fillText(`T${c.id} [${c.distance.toFixed(1)}m]`, bx + 7, by - 4);
+            ctx.fillText(`T${c.id} [${dist.toFixed(1)}m]`, bx + 7, by - 4);
         });
 
         ctx.restore();

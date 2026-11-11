@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/imu_data.h"
 #include "core/target_data.h"
 #include "core/threat_assessment.h"
 #include "ports/i_display.h"
@@ -25,6 +26,7 @@ public:
     void draw_sweep(const float angle_deg) override;
     void draw_radar(const std::vector<core::TargetData>& targets) override;
     void draw_alert(const core::ThreatAssessment& threat) override;
+    void draw_attitude(const core::Orientation& orientation, const core::ImuData* imu) override;
     void flush() override;
 
 private:

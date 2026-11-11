@@ -18,22 +18,23 @@
     padding: 0;
 }
 
-body {
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
     background-color: var(--bg-dark);
     color: var(--phosphor-green);
     font-family: var(--font-mono);
-    min-height: 100vh;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
 }
 
 .hud-container {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    padding: 12px;
-    gap: 12px;
+    height: 100vh;
+    padding: 10px;
+    gap: 10px;
+    box-sizing: border-box;
 }
 
 /* Header */
@@ -43,13 +44,14 @@ body {
     align-items: center;
     background-color: var(--panel-bg);
     border: 1px solid var(--panel-border);
-    padding: 10px 16px;
+    padding: 8px 14px;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .title-group h1 {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     letter-spacing: 2px;
 }
 
@@ -59,22 +61,22 @@ body {
 }
 
 .subtitle {
-    font-size: 0.72rem;
+    font-size: 0.70rem;
     color: var(--phosphor-dim);
-    margin-top: 2px;
+    margin-top: 1px;
 }
 
 .status-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
 .badge {
-    font-size: 0.72rem;
+    font-size: 0.70rem;
     font-weight: bold;
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 2px;
     letter-spacing: 1px;
 }
@@ -96,8 +98,8 @@ body {
 .stat-pill {
     background-color: #101E17;
     border: 1px solid var(--panel-border);
-    padding: 4px 8px;
-    font-size: 0.75rem;
+    padding: 3px 7px;
+    font-size: 0.72rem;
 }
 
 .glow-val {
@@ -109,9 +111,9 @@ body {
     background-color: #101E17;
     color: var(--phosphor-green);
     border: 1px solid var(--phosphor-dim);
-    padding: 4px 10px;
+    padding: 3px 8px;
     font-family: inherit;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -131,14 +133,9 @@ body {
 .hud-main {
     display: flex;
     flex: 1;
-    gap: 12px;
+    gap: 10px;
     min-height: 0;
-}
-
-@media (max-width: 900px) {
-    .hud-main {
-        flex-direction: column;
-    }
+    overflow: hidden;
 }
 
 /* Radar Canvas Viewport */
@@ -147,14 +144,15 @@ body {
     position: relative;
     background-color: #040806;
     border: 1px solid var(--panel-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
-    min-height: 480px;
 }
 
 canvas#radar-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: block;
@@ -177,14 +175,14 @@ canvas#radar-canvas {
 
 .danger-banner {
     position: absolute;
-    top: 16px;
+    top: 14px;
     left: 50%;
     transform: translateX(-50%);
     background-color: rgba(255, 51, 51, 0.9);
     color: #FFFFFF;
     font-weight: bold;
-    font-size: 0.85rem;
-    padding: 8px 16px;
+    font-size: 0.80rem;
+    padding: 6px 14px;
     border: 1px solid #FFFFFF;
     box-shadow: 0 0 15px var(--red-glow);
     animation: danger-pulse 0.8s infinite alternate;
@@ -206,57 +204,72 @@ canvas#radar-canvas {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-width: 300px;
+    gap: 8px;
+    min-width: 280px;
+    max-width: 380px;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.hud-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.hud-sidebar::-webkit-scrollbar-track {
+    background: #070D0A;
+}
+.hud-sidebar::-webkit-scrollbar-thumb {
+    background: #1D663F;
+    border-radius: 3px;
 }
 
 .panel {
     background-color: var(--panel-bg);
     border: 1px solid var(--panel-border);
-    padding: 12px;
+    padding: 8px 10px;
+    flex-shrink: 0;
 }
 
 .panel-title {
-    font-size: 0.85rem;
+    font-size: 0.80rem;
     letter-spacing: 1.5px;
     color: var(--phosphor-green);
     border-bottom: 1px solid var(--panel-border);
-    padding-bottom: 6px;
-    margin-bottom: 10px;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 /* Telemetry Table */
 .telemetry-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
 }
 
 .telemetry-table th {
     text-align: left;
     color: var(--phosphor-dim);
-    padding: 4px 6px;
+    padding: 3px 5px;
     font-weight: normal;
     border-bottom: 1px solid #13241B;
 }
 
 .telemetry-table td {
-    padding: 6px 6px;
+    padding: 4px 5px;
     border-bottom: 1px solid #0D1712;
 }
 
 .no-data {
     text-align: center;
     color: var(--text-muted);
-    padding: 16px 0;
+    padding: 12px 0;
     font-style: italic;
 }
 
 .zone-tag {
     font-weight: bold;
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: 2px;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
 }
 
 .zone-safe {
@@ -277,11 +290,11 @@ canvas#radar-canvas {
 
 /* Threat Box */
 .threat-box {
-    padding: 12px;
+    padding: 8px;
     text-align: center;
     font-weight: bold;
-    font-size: 0.95rem;
-    letter-spacing: 2px;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
     border-radius: 2px;
 }
 
@@ -309,8 +322,8 @@ canvas#radar-canvas {
 .info-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.75rem;
-    padding: 4px 0;
+    font-size: 0.72rem;
+    padding: 3px 0;
     border-bottom: 1px solid #0E1712;
 }
 
@@ -324,4 +337,26 @@ canvas#radar-canvas {
 
 .color-caution {
     color: var(--amber-caution);
+}
+
+@media (max-width: 850px) {
+    html, body {
+        overflow: auto;
+    }
+    .hud-container {
+        height: auto;
+        min-height: 100vh;
+    }
+    .hud-main {
+        flex-direction: column;
+        overflow: visible;
+    }
+    .radar-viewport {
+        min-height: 380px;
+        height: 55vh;
+    }
+    .hud-sidebar {
+        max-width: none;
+        overflow-y: visible;
+    }
 }

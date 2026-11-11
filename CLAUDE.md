@@ -47,13 +47,13 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telem
 # Run tactical desktop radar HUD (Tkinter GUI via uv)
 ./scripts/gui.sh --demo                         # Standalone demo mode
 ./scripts/gui.sh --port /dev/ttyUSB0 --raw      # Live raw radar feed @ 256k
-./scripts/gui.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 115k
+./scripts/gui.sh --port /dev/ttyUSB0            # ESP32 telemetry feed @ 921k
 ./scripts/gui.sh --port socket://heartbeat-radar.local:3333   # ESP32 WiFi telemetry (or simulator --socket)
 
 # Run tactical web radar HUD (FastAPI + HTML5 Canvas via uv)
 ./scripts/web.sh --demo                         # Standalone web demo on http://127.0.0.1:8899
 ./scripts/web.sh --serial /dev/ttyUSB0 --raw    # Live raw radar feed @ 256k
-./scripts/web.sh --serial /dev/ttyUSB0          # ESP32 telemetry feed @ 115k
+./scripts/web.sh --serial /dev/ttyUSB0          # ESP32 telemetry feed @ 921k
 ./scripts/web.sh --serial socket://heartbeat-radar.local:3333 # ESP32 WiFi telemetry (or simulator --socket)
 
 # Run all-in-one synchronized sensor simulator + HUD (tmux)
@@ -81,7 +81,7 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi   # TCP telem
 # Upload firmware to connected ESP32 (runs locally, requires USB)
 ./scripts/upload.sh [port]   # Default: /dev/ttyUSB0
 
-# Serial monitor (runs locally, 115200 baud)
+# Serial monitor (runs locally, 921600 baud)
 ./scripts/monitor.sh [port]  # Default: /dev/ttyUSB0
 ```
 

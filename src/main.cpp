@@ -43,6 +43,16 @@
 #include "adapters/buzzers/esp32_buzzer_adapter.h"
 #endif
 
+#if defined(ENABLE_IMU_MPU6050)
+#include "adapters/imu/mpu6050_adapter.h"
+#ifndef MPU6050_I2C_ADDRESS
+#define MPU6050_I2C_ADDRESS hrs::adapters::imu::MPU6050Adapter::DEFAULT_I2C_ADDRESS
+#endif
+#ifndef MPU6050_I2C_FREQ
+#define MPU6050_I2C_FREQ hrs::adapters::imu::MPU6050Adapter::DEFAULT_I2C_FREQ
+#endif
+#endif
+
 namespace
 {
 
@@ -86,6 +96,11 @@ hrs::adapters::displays::WifiDisplayAdapter display_adapter(
 hrs::adapters::buzzers::ESP32BuzzerAdapter buzzer_adapter(BUZZER_PIN);
 #endif
 
+#if defined(ENABLE_IMU_MPU6050)
+hrs::adapters::imu::MPU6050Adapter
+    imu_adapter(Wire, MPU6050_SDA_PIN, MPU6050_SCL_PIN, MPU6050_I2C_ADDRESS, MPU6050_I2C_FREQ);
+#endif
+
 hrs::core::DistanceThreatEvaluator
     threat_evaluator(SPECS.danger_distance_m, SPECS.caution_distance_m, SPECS.max_distance_m);
 
@@ -94,7 +109,12 @@ hrs::core::RadarEngine engine(sensor_adapter,
                               timer_adapter,
                               threat_evaluator,
 #if defined(ENABLE_BUZZER)
-                              &buzzer_adapter
+                              &buzzer_adapter,
+#else
+                              nullptr,
+#endif
+#if defined(ENABLE_IMU_MPU6050)
+                              &imu_adapter
 #else
                               nullptr
 #endif
@@ -107,6 +127,25 @@ void setup()
     Serial.begin(SERIAL_BAUD_RATE);
     delay(500);
     Serial.println(F("[HeartbeatRadar] Booting Tactical Radar System..."));
+
+#if defined(ENABLE_IMU_MPU6050)
+#if defined(RADAR_MOUNTING_YAW_DEG) || defined(RADAR_MOUNTING_PITCH_DEG) || defined(RADAR_MOUNTING_ROLL_DEG)
+    hrs::core::TransformConfig transform_cfg{};
+#ifdef RADAR_MOUNTING_YAW_DEG
+    transform_cfg.mounting_yaw_deg = RADAR_MOUNTING_YAW_DEG;
+#endif
+#ifdef RADAR_MOUNTING_PITCH_DEG
+    transform_cfg.mounting_pitch_deg = RADAR_MOUNTING_PITCH_DEG;
+#endif
+#ifdef RADAR_MOUNTING_ROLL_DEG
+    transform_cfg.mounting_roll_deg = RADAR_MOUNTING_ROLL_DEG;
+#endif
+    engine.set_transform_config(transform_cfg);
+#endif
+#ifdef RADAR_COMPENSATE_ATTITUDE
+    engine.set_attitude_compensation(RADAR_COMPENSATE_ATTITUDE);
+#endif
+#endif
 
     if (false == engine.init())
     {

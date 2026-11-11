@@ -1,5 +1,6 @@
 #include "st7789_adapter.h"
 
+#include "core/imu_data.h"
 #include "core/target_data.h"
 #include "core/threat_assessment.h"
 
@@ -38,6 +39,10 @@ void ST7789Adapter::draw_alert(const core::ThreatAssessment& threat)
     threat_ = threat;
 }
 
+void ST7789Adapter::draw_attitude(const core::Orientation& /*orientation*/, const core::ImuData* /*imu*/)
+{
+}
+
 void ST7789Adapter::flush()
 {
     // Basic HUD rendering stub: clear and draw crosshair / sweep indicator
@@ -64,6 +69,10 @@ void ST7789Adapter::draw_radar(const std::vector<core::TargetData>& /*targets*/)
 }
 
 void ST7789Adapter::draw_alert(const core::ThreatAssessment& /*threat*/)
+{
+}
+
+void ST7789Adapter::draw_attitude(const core::Orientation& /*orientation*/, const core::ImuData* /*imu*/)
 {
 }
 

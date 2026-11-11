@@ -60,6 +60,29 @@ class TestFrameDecoder(unittest.TestCase):
         self.assertAlmostEqual(c.y, 3.0, places=2)
         self.assertAlmostEqual(c.speed, -0.2, places=2)
 
+    def test_decode_json_line_with_imu(self):
+        line = b'{"type":"radar_frame","sweep_deg":12.0,"targets":[],"imu":{"pitch":1.5,"roll":-3.2,"yaw":45.0,"ax":0.02,"ay":0.15,"az":0.98,"gx":0.1,"gy":-0.2,"gz":0.0,"temp":24.5}}\n'
+        buffer = bytearray(line)
+        contacts, residual, imu = FrameDecoder.parse_telemetry(buffer)
+
+        self.assertEqual(len(residual), 0)
+        self.assertEqual(len(contacts), 0)
+        self.assertIsNotNone(imu)
+        self.assertAlmostEqual(imu.pitch, 1.5, places=1)
+        self.assertAlmostEqual(imu.roll, -3.2, places=1)
+        self.assertAlmostEqual(imu.yaw, 45.0, places=1)
+        self.assertAlmostEqual(imu.az, 0.98, places=2)
+        self.assertAlmostEqual(imu.temp, 24.5, places=1)
+
+    def test_empty_frame_is_told_apart_from_no_frame(self):
+        # Empty list = "nobody in range" (HUD must clear); None = "no complete frame yet" (keep showing)
+        empty, _, _ = FrameDecoder.parse_telemetry(bytearray(b'{"type":"radar_frame","alert":"NoSignal","targets":[]}\n'))
+        partial, _, _ = FrameDecoder.parse_telemetry(bytearray(b'{"type":"radar_frame","targ'))
+        corrupt, _, _ = FrameDecoder.parse_telemetry(bytearray(b'{"type":"radar_fr{"targets":[]}\n'))
+        self.assertEqual(empty, [])
+        self.assertIsNone(partial)
+        self.assertIsNone(corrupt)
+
 
 if __name__ == "__main__":
     unittest.main()

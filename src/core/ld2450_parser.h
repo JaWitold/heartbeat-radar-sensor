@@ -28,7 +28,6 @@ public:
     LD2450Parser() = default;
 
     bool parse_byte(const uint8_t byte);
-    std::vector<TargetData> parse_buffer(const uint8_t* data, const size_t length);
 
     [[nodiscard]] const std::vector<TargetData>& get_latest_targets() const;
     void reset();

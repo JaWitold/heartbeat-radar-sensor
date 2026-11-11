@@ -7,8 +7,9 @@ import time
 from typing import Callable, List, Optional
 
 from sensor_sim.protocols.ld2450 import LD2450Encoder
+from sensor_sim.protocols.telemetry import demo_imu
 from sensor_sim.scenarios import get_scenario
-from .protocol_decoders import FrameDecoder, RadarContact
+from .protocol_decoders import FrameDecoder, ImuTelemetry, RadarContact
 
 
 def open_serial(port: str, baud: int, timeout: float):
@@ -43,8 +44,13 @@ def simulated_contacts(scenario, dt: float) -> List[RadarContact]:
 class SerialReaderThread:
     """Background reader thread reading from serial port or demo generator."""
 
-    def __init__(self, on_contacts_received: Callable[[List[RadarContact]], None]):
+    def __init__(
+        self,
+        on_contacts_received: Callable[[List[RadarContact]], None],
+        on_imu_received: Optional[Callable[[ImuTelemetry], None]] = None,
+    ):
         self._callback = on_contacts_received
+        self._imu_callback = on_imu_received
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._port_name: Optional[str] = None
@@ -96,9 +102,11 @@ class SerialReaderThread:
                 data = self._serial.read(64)
                 if data:
                     buffer.extend(data)
-                    contacts, buffer = FrameDecoder.parse_stream(buffer)
-                    if contacts:
+                    contacts, buffer, imu = FrameDecoder.parse_telemetry(buffer)
+                    if contacts is not None:
                         self._callback(contacts)
+                    if imu and self._imu_callback:
+                        self._imu_callback(imu)
                 else:
                     time.sleep(0.01)
 
@@ -116,6 +124,11 @@ class SerialReaderThread:
         """Synthetic demo contact generator for hardware-free testing."""
         print("[GUI] Demo mode started.")
         scenario = get_scenario("multi")
+        start_t = time.monotonic()
         while self._running:
+            now = time.monotonic()
+            t = now - start_t
             self._callback(simulated_contacts(scenario, 0.05))
+            if self._imu_callback:
+                self._imu_callback(ImuTelemetry(**demo_imu(t)))
             time.sleep(0.05)

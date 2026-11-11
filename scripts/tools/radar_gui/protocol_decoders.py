@@ -22,6 +22,20 @@ class RadarContact:
     threat_zone: Optional[str] = None  # From firmware telemetry; None for raw sensor frames
 
 
+@dataclass
+class ImuTelemetry:
+    pitch: float
+    roll: float
+    yaw: float
+    ax: float
+    ay: float
+    az: float
+    gx: float
+    gy: float
+    gz: float
+    temp: float
+
+
 # Fallback thresholds for raw LD2450 frames (mirror LD2450Adapter::SPECS); firmware JSON carries its own zone.
 DANGER_DISTANCE_M = 1.5
 CAUTION_DISTANCE_M = 3.5
@@ -51,12 +65,16 @@ class FrameDecoder:
     LD2450_FRAME_LEN = 30
 
     @classmethod
-    def parse_stream(cls, buffer: bytearray) -> Tuple[List[RadarContact], bytearray]:
+    def parse_telemetry(
+        cls, buffer: bytearray
+    ) -> Tuple[Optional[List[RadarContact]], bytearray, Optional[ImuTelemetry]]:
         """
         Scans buffer for complete frames (binary LD2450 or JSON newline lines).
-        Returns extracted contacts from the newest valid frame and the residual buffer.
+        Returns contacts of the last complete frame ([] = nobody in range, None = no frame yet),
+        the residual buffer, and optional IMU telemetry.
         """
-        contacts: List[RadarContact] = []
+        contacts: Optional[List[RadarContact]] = None
+        imu: Optional[ImuTelemetry] = None
 
         # JSON line only if a newline comes before any binary header: 0x0A is also a valid byte inside LD2450 frames
         newline_idx = buffer.find(b"\n")
@@ -67,8 +85,8 @@ class FrameDecoder:
             try:
                 line_str = line_bytes.decode("utf-8", errors="ignore")
                 if line_str.startswith("{") and line_str.endswith("}"):
-                    contacts = cls._decode_json(line_str)
-                    return contacts, buffer
+                    contacts, imu = cls._decode_json(line_str)
+                    return contacts, buffer, imu
             except Exception:
                 pass
 
@@ -95,7 +113,13 @@ class FrameDecoder:
             else:
                 del buffer[:1]
 
-        return contacts, buffer
+        return contacts, buffer, imu
+
+    @classmethod
+    def parse_stream(cls, buffer: bytearray) -> Tuple[List[RadarContact], bytearray]:
+        """Backward-compatible helper returning (contacts, residual_buffer)."""
+        contacts, residual, _ = cls.parse_telemetry(buffer)
+        return contacts or [], residual
 
     @classmethod
     def _decode_ld2450(cls, frame: bytes) -> List[RadarContact]:
@@ -132,8 +156,9 @@ class FrameDecoder:
         return contacts
 
     @classmethod
-    def _decode_json(cls, line: str) -> List[RadarContact]:
+    def _decode_json(cls, line: str) -> Tuple[Optional[List[RadarContact]], Optional[ImuTelemetry]]:
         contacts: List[RadarContact] = []
+        imu: Optional[ImuTelemetry] = None
         now = time.monotonic()
         try:
             data = json.loads(line)
@@ -156,6 +181,21 @@ class FrameDecoder:
                         threat_zone=t.get("threat_zone"),
                     )
                 )
-        except (json.JSONDecodeError, ValueError, KeyError):
-            pass
-        return contacts
+
+            imu_dict = data.get("imu")
+            if isinstance(imu_dict, dict):
+                imu = ImuTelemetry(
+                    pitch=float(imu_dict.get("pitch", 0.0)),
+                    roll=float(imu_dict.get("roll", 0.0)),
+                    yaw=float(imu_dict.get("yaw", 0.0)),
+                    ax=float(imu_dict.get("ax", 0.0)),
+                    ay=float(imu_dict.get("ay", 0.0)),
+                    az=float(imu_dict.get("az", 0.0)),
+                    gx=float(imu_dict.get("gx", 0.0)),
+                    gy=float(imu_dict.get("gy", 0.0)),
+                    gz=float(imu_dict.get("gz", 0.0)),
+                    temp=float(imu_dict.get("temp", 0.0)),
+                )
+        except (ValueError, KeyError):
+            return None, None  # corrupt line (e.g. torn by a partial WiFi send): not a frame
+        return contacts, imu

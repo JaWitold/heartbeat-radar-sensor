@@ -5,7 +5,7 @@ Unit tests for RadarWebServer routes and contact serialization.
 import asyncio
 import unittest
 import aiohttp
-from radar_gui.protocol_decoders import RadarContact
+from radar_gui.protocol_decoders import ImuTelemetry, RadarContact
 from radar_web.server import RadarWebServer
 
 
@@ -88,6 +88,24 @@ class TestRadarWebServer(unittest.IsolatedAsyncioTestCase):
         s_dict = self.server._contact_to_dict(safe_contact)
         self.assertEqual(s_dict["id"], 3)
         self.assertEqual(s_dict["threat_zone"], "Safe")
+
+    async def test_broadcast_imu_telemetry(self):
+        async with aiohttp.ClientSession() as session:
+            async with session.ws_connect("http://localhost:8899/ws") as ws:
+                # Discard initial snapshot
+                await ws.receive_json()
+
+                imu = ImuTelemetry(
+                    pitch=2.5, roll=-1.0, yaw=90.0, ax=0.01, ay=0.02, az=0.99, gx=0.1, gy=-0.1, gz=0.0, temp=26.0
+                )
+                await self.server.broadcast_contacts([], imu)
+
+                msg = await ws.receive_json()
+                self.assertIn("imu", msg)
+                self.assertAlmostEqual(msg["imu"]["pitch"], 2.5)
+                self.assertAlmostEqual(msg["imu"]["roll"], -1.0)
+                self.assertAlmostEqual(msg["imu"]["yaw"], 90.0)
+                self.assertAlmostEqual(msg["imu"]["temp"], 26.0)
 
 
 if __name__ == "__main__":
