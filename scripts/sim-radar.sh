@@ -19,7 +19,7 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 echo -e "${CYAN}====================================================${NC}"
-echo -e "${CYAN}   🎯 Heartbeat Radar — Hexagonal Sensor Simulator  ${NC}"
+echo -e "${CYAN}   Heartbeat Radar — Hexagonal Sensor Simulator  ${NC}"
 echo -e "${CYAN}====================================================${NC}"
 
 if command -v uv >/dev/null 2>&1; then

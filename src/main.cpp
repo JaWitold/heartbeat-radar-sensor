@@ -126,7 +126,7 @@ void setup()
 {
     Serial.begin(SERIAL_BAUD_RATE);
     delay(500);
-    Serial.println(F("[HeartbeatRadar] Booting Tactical Radar System..."));
+    Serial.println(F("[HeartbeatRadar] Booting..."));
 
 #if defined(ENABLE_IMU_MPU6050)
 #if defined(RADAR_MOUNTING_YAW_DEG) || defined(RADAR_MOUNTING_PITCH_DEG) || defined(RADAR_MOUNTING_ROLL_DEG)

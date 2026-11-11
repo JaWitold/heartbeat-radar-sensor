@@ -6,7 +6,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "Heartbeat Radar Sensor"
-PROJECT_BRIEF          = "Tactical radar sensor inspired by CoD MW2 and R6 Siege"
+PROJECT_BRIEF          = "ESP32 + HLK-LD2450 mmWave radar presence sensor"
 PROJECT_NUMBER         =
 PROJECT_LOGO           =
 OUTPUT_DIRECTORY       = docs/

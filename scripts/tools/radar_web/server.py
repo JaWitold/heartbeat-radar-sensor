@@ -1,5 +1,5 @@
 """
-Async aiohttp Server hosting Tactical Radar Web HUD & WebSocket stream.
+Async aiohttp server hosting the radar web HUD and WebSocket stream.
 """
 
 import asyncio
@@ -57,7 +57,7 @@ class RadarWebServer:
         if os.path.exists(index_path):
             with open(index_path, "r", encoding="utf-8") as f:
                 return web.Response(text=f.read(), content_type="text/html")
-        return web.Response(text="<h1>Tactical Radar HUD — static/index.html not found</h1>", content_type="text/html")
+        return web.Response(text="<h1>Radar HUD — static/index.html not found</h1>", content_type="text/html")
 
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
         # Browsers always send Origin: stop other sites open in the browser from reading the live feed
@@ -191,10 +191,10 @@ class RadarWebServer:
                 raise
 
         print("=" * 60)
-        print(f"  🎯 Tactical Radar Web HUD active!")
-        print(f"  🌐 Browser Display URL: http://localhost:{self.port}")
+        print(f"  Radar Web HUD active")
+        print(f"  Browser Display URL: http://localhost:{self.port}")
         if self.host == "0.0.0.0":
-            print(f"  📱 Network Access:      http://<your-ip>:{self.port}")
+            print(f"  Network Access:      http://<your-ip>:{self.port}")
         print("=" * 60)
 
         if self.demo_mode:

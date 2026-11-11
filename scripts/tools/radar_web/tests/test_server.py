@@ -34,7 +34,7 @@ class TestRadarWebServer(unittest.IsolatedAsyncioTestCase):
             async with session.get("http://localhost:8899/") as resp:
                 self.assertEqual(resp.status, 200)
                 html = await resp.text()
-                self.assertIn("TACTICAL HEARTBEAT RADAR", html)
+                self.assertIn("HEARTBEAT RADAR", html)
 
             # Test CSS
             async with session.get("http://localhost:8899/static/style.css") as resp:

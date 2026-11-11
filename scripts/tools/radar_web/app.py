@@ -1,5 +1,5 @@
 """
-Main entrypoint for Tactical Radar Web HUD server.
+Entrypoint for the radar web HUD server.
 """
 
 import argparse
@@ -13,7 +13,7 @@ from .server import RadarWebServer
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Tactical Heartbeat Radar Web HUD Server"
+        description="Heartbeat Radar Web HUD Server"
     )
     parser.add_argument(
         "--http-port",

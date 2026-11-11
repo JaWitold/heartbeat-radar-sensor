@@ -1,6 +1,5 @@
 /**
- * Tactical Heartbeat Radar — HTML5 Canvas Engine & WebSocket Client
- * Call of Duty MW2 / Rainbow Six Siege tactical CRT radar HUD
+ * Heartbeat Radar — HTML5 Canvas renderer & WebSocket client
  */
 
 (function () {
@@ -75,13 +74,13 @@
     btnAudio.addEventListener("click", () => {
         audioEnabled = !audioEnabled;
         if (audioEnabled) {
-            btnAudio.textContent = "🔊 AUDIO: ON";
+            btnAudio.textContent = "AUDIO: ON";
             btnAudio.classList.add("active");
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
         } else {
-            btnAudio.textContent = "🔊 AUDIO: OFF";
+            btnAudio.textContent = "AUDIO: OFF";
             btnAudio.classList.remove("active");
         }
     });
@@ -204,7 +203,7 @@
 
         if (hasDanger) {
             threatIndicator.className = "threat-box threat-danger";
-            threatLevel.textContent = "⚠️ PROXIMITY HAZARD";
+            threatLevel.textContent = "PROXIMITY HAZARD";
             dangerBanner.classList.remove("hidden");
             triggerBeep(2600, 0.12);
         } else if (hasCaution) {

@@ -15,11 +15,11 @@ from .sidebar_hud import SidebarHUD
 
 
 class RadarGuiApp:
-    """Tactical Radar Desktop Telemetry Window."""
+    """Radar desktop telemetry window."""
 
     def __init__(self, port: str = None, baud: int = 921600, demo: bool = False):
         self.root = tk.Tk()
-        self.root.title("Tactical Heartbeat Radar HUD")
+        self.root.title("Heartbeat Radar HUD")
         self.root.geometry("920x620")
         self.root.configure(bg="#070D0A")
         self.root.minsize(800, 560)
@@ -58,7 +58,7 @@ class RadarGuiApp:
         self.canvas = RadarCanvas(container, size=580)
         self.canvas.pack(side="left", fill="both", expand=True)
 
-        # Right side: Tactical HUD & Controls
+        # Right side: HUD & controls
         self.sidebar = SidebarHUD(
             container,
             on_connect=self._connect_serial,
@@ -121,7 +121,7 @@ class RadarGuiApp:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Tactical Heartbeat Radar Desktop HUD")
+    parser = argparse.ArgumentParser(description="Heartbeat Radar Desktop HUD")
     parser.add_argument("--port", type=str, help="Serial port (e.g. /dev/ttyUSB0 or /dev/pts/15)")
     parser.add_argument("--baud", type=int, default=921600, help="Baud rate (default: 921600)")
     parser.add_argument("--demo", action="store_true", help="Launch in standalone demo mode")

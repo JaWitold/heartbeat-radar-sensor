@@ -1,4 +1,4 @@
-name: "📋 Task"
+name: "Task"
 description: Create a task or work item
 title: "[Task]: "
 labels: ["type:chore"]

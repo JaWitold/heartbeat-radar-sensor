@@ -9,7 +9,7 @@ from .protocol_decoders import ImuTelemetry, RadarContact, zone_of
 
 
 class SidebarHUD(tk.Frame):
-    """Tactical telemetry sidebar and serial communication panel."""
+    """Telemetry sidebar and serial communication panel."""
 
     COLOR_BG = "#0B1410"
     COLOR_FG = "#00FF88"
@@ -39,7 +39,7 @@ class SidebarHUD(tk.Frame):
     def _build_header(self) -> None:
         title = tk.Label(
             self,
-            text="TACTICAL RADAR HUD",
+            text="HEARTBEAT RADAR",
             font=("Courier", 13, "bold"),
             fg=self.COLOR_FG,
             bg=self.COLOR_BG,
@@ -48,7 +48,7 @@ class SidebarHUD(tk.Frame):
 
         subtitle = tk.Label(
             self,
-            text="COD MW2 / R6 FMCW mmWave Feed",
+            text="HLK-LD2450 FMCW mmWave Feed",
             font=("Courier", 8),
             fg="#2B6842",
             bg=self.COLOR_BG,
