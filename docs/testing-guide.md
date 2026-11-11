@@ -1,75 +1,79 @@
 # Testing Guide & TDD Workflow
 
-## Philosophy: Test-Driven Development (TDD)
+## TDD
 
-We strictly follow the **Red $\to$ Green $\to$ Refactor** cycle for all core application features.
+**Red $\to$ Green $\to$ Refactor** for all core features.
 
 ```mermaid
 flowchart TD
-    Red["🔴 RED Phase\nWrite a failing unit test first\nVerify test fails as expected"]
-    Green["🟢 GREEN Phase\nWrite minimal code to make test pass\nZero premature optimization"]
-    Refactor["🔵 REFACTOR Phase\nClean up code, extract functions\nApply SOLID and code conventions\nEnsure all tests remain green"]
+    Red["RED\nWrite failing unit test\nVerify it fails for expected reason"]
+    Green["GREEN\nMinimal code to pass\nNo premature optimization"]
+    Refactor["REFACTOR\nClean up, extract functions\nSOLID + code conventions\nAll tests stay green"]
 
     Red --> Green
     Green --> Refactor
     Refactor --> Red
 ```
 
-1. **🔴 RED:** Never write production domain code without a failing unit test verifying the requirement.
-2. **🟢 GREEN:** Write the simplest possible implementation that satisfies the test.
-3. **🔵 REFACTOR:** Improve design, remove duplication, and ensure adherence to Yoda style, const-correctness, and memory safety.
+1. **RED:** no production domain code without failing test first.
+2. **GREEN:** simplest impl that passes.
+3. **REFACTOR:** improve design, remove duplication; Yoda style, const-correctness, memory safety.
 
 ---
 
 ## Test Pyramid
 
-1. **Native Unit Tests (Catch2 v3, Host-side)**
-   - Located in `test_native/`
-   - Test `RadarEngine`, `SignalProcessor`, protocol framing, and mathematical utilities.
-   - Run inside Docker container in milliseconds:
+1. **Native unit tests (Catch2 v3, host)**
+   - `test_native/`
+   - Covers `RadarEngine`, `DistanceThreatEvaluator`, `LD2450Parser`, `CoordinateTransformer`, `AttitudeEstimator`, telemetry framing.
+   - Docker, milliseconds:
      ```bash
      ./scripts/test-native.sh
      ```
-   - Core domain contains no hardware dependencies, making tests 100% deterministic and mock-friendly.
+   - Core has no hardware deps → deterministic, mockable.
 
-2. **Integration / Embedded Tests (PlatformIO Unity, Target-side)**
-   - Located in `test/test_embedded/`
-   - Test real peripheral interaction, SPI bus initialization, and UART communication buffers on physical ESP32 hardware or Wokwi simulator.
+2. **Embedded tests (target)**
+   - `test/test_embedded/` — empty placeholder; no on-device suite yet.
+   - Intended scope: peripheral init, SPI bus, UART buffers on ESP32 or Wokwi.
+
+3. **Python tool tests**
+   - `scripts/tools/*/tests/`
+   - `./scripts/test-python.sh`
 
 ---
 
 ## Writing Catch2 Tests
 
-Tests should follow BDD structure (`SCENARIO`, `GIVEN`, `WHEN`, `THEN`):
+BDD structure (`SCENARIO`, `GIVEN`, `WHEN`, `THEN`). From `test_native/core/test_radar_engine.cpp`:
 
 ```cpp
-#include <catch2/catch_test_macros.hpp>
-#include "core/radar_engine.h"
-#include "mocks/mock_sensor.h"
-#include "mocks/mock_display.h"
-#include "mocks/mock_timer.h"
-
-SCENARIO("Radar engine tracks newly detected target", "[core][radar]")
+SCENARIO("RadarEngine update loop and threat delegation", "[radar_engine][core]")
 {
-    GIVEN("An initialized radar engine with mock peripherals")
+    GIVEN("An initialized RadarEngine with mock evaluator")
     {
-        MockSensor mock_sensor;
-        MockDisplay mock_display;
-        MockTimer mock_timer;
-        RadarEngine engine(mock_sensor, mock_display, mock_timer);
+        MockSensor sensor;
+        MockDisplay display;
+        MockTimer timer;
+        MockThreatEvaluator evaluator;
+        MockBuzzer buzzer;
 
-        WHEN("Sensor detects a target at 2.5 meters in front")
+        RadarEngine engine(sensor, display, timer, evaluator, &buzzer);
+        engine.init();
+
+        WHEN("No targets are detected and evaluator returns Safe")
         {
-            mock_sensor.set_simulated_targets({
-                TargetData{ .x = 0.0f, .y = 2.5f, .speed = 0.1f, .distance = 2.5f }
-            });
+            sensor.set_targets({});
+            evaluator.set_assessment({ThreatLevel::Safe, 0.0f, 0, 0.0f, 0.0f});
 
             engine.update();
 
-            THEN("The engine registers exactly 1 active contact in the mid zone")
+            THEN("Display renders with Safe alert level")
             {
-                REQUIRE(1 == engine.active_target_count());
-                REQUIRE(TargetZone::Mid == engine.get_target(0).zone);
+                REQUIRE(1 == sensor.scan_call_count());
+                REQUIRE(1 == evaluator.evaluate_call_count());
+                REQUIRE(1 == display.draw_radar_call_count());
+                REQUIRE(ThreatLevel::Safe == display.last_threat().level);
+                REQUIRE(0 == buzzer.beep_call_count());
             }
         }
     }
@@ -78,14 +82,14 @@ SCENARIO("Radar engine tracks newly detected target", "[core][radar]")
 
 ---
 
-## Yoda Conditions in Assertions
+## Yoda Comparisons in Assertions
 
-In accordance with our project rules, always use **Yoda style** comparisons:
+Constant on left:
 
 ```cpp
 // Correct
 REQUIRE(1 == engine.active_target_count());
-REQUIRE(true == engine.is_scanning());
+REQUIRE(true == ok);
 
 // Incorrect
 REQUIRE(engine.active_target_count() == 1);
@@ -93,6 +97,6 @@ REQUIRE(engine.active_target_count() == 1);
 
 ---
 
-## Continuous Integration Verification
+## CI
 
-Catch2 native tests run on every push and pull request via `.github/workflows/ci.yml`. Pull requests with failing tests are blocked from merging.
+`.github/workflows/ci.yml` runs on push and PR to `main`: format check, static analysis, native tests. Failing tests block merge.

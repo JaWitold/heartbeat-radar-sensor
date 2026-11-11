@@ -1,26 +1,26 @@
-# Tactical Radar Desktop GUI Guide
+# Radar Desktop GUI Guide
 
-The **Tactical Radar Desktop GUI** (`./scripts/gui.sh` or `uv run radar-gui`) provides a real-time Call of Duty: Modern Warfare 2 / Rainbow Six Siege style radar HUD for testing, simulation, and hardware telemetry.
-
----
-
-## 🎨 Features
-
-- **CRT Phosphor Aesthetic:** Dark background (`#070D0A`) with high-contrast phosphor green sweep beam and grid.
-- **Range & Azimuth Grid:** 1.0m to 6.0m concentric range rings and azimuth ray lines (-60° to +60°).
-- **Smooth 60 FPS Sweep:** Oscillating radar beam with fading phosphor trail.
-- **Dynamic Blips & Threat Alert:**
-  - `NEAR (<1.5m)`: Red pulsing blip with flashing proximity danger banner.
-  - `MID (1.5 - 3.5m)`: Amber caution blip.
-  - `FAR (>3.5m)`: Green clear blip.
-- **Telemetry Sidebar:** Live coordinates table ($X, Y$ in meters, velocity in $\text{m/s}$, distance, threat zone badge), connection controls, and FPS counter.
+Desktop GUI: `./scripts/gui.sh` or `uv run radar-gui`. Tkinter radar HUD for testing, simulation, hardware telemetry.
 
 ---
 
-## 🚀 Running the GUI with `uv`
+## Features
 
-### 1. Standalone Demo Mode (No Hardware / No Cables)
-Instantly preview the radar sweep and moving simulated targets:
+- **CRT style:** background `#070D0A`, green sweep beam + grid.
+- **Grid:** range rings 1.0 m to 6.0 m; azimuth rays -60° to +60°.
+- **Sweep:** 60 FPS, oscillating beam, fading trail.
+- **Blips by zone:**
+  - `NEAR (<1.5m)`: red pulsing blip + flashing danger banner.
+  - `MID (1.5 - 3.5m)`: amber.
+  - `FAR (>3.5m)`: green.
+- **Sidebar:** per-target $X, Y$ (m), velocity ($\text{m/s}$), distance, zone badge; connection controls; FPS counter.
+
+---
+
+## Running with `uv`
+
+### 1. Demo Mode (no hardware)
+Simulated moving targets:
 ```bash
 ./scripts/gui.sh --demo
 
@@ -30,25 +30,25 @@ cd scripts/tools && uv run radar-gui --demo
 
 ---
 
-### 2. Connected to Physical ESP32 Board
-When the ESP32 is plugged in via USB and streaming telemetry over UART:
+### 2. ESP32 Telemetry
+ESP32 on USB, streaming JSON telemetry over UART (921600 baud, default):
 ```bash
 ./scripts/gui.sh --port /dev/ttyUSB0 --baud 921600
 ```
 
 ---
 
-### 3. Connected Directly to Raw HLK-LD2450 Radar Sensor
-When the radar sensor is plugged into your PC via a USB-to-UART adapter (e.g. **PL2303HX**, **CP2102**, or **CH340**):
+### 3. Raw HLK-LD2450 via USB-UART
+Sensor on PC via USB-UART adapter (**PL2303HX**, **CP2102**, **CH340**):
 ```bash
 ./scripts/gui.sh --port /dev/ttyUSB0 --raw
 ```
-*(The `--raw` flag configures the parser for 256000 baud 30-byte binary FMCW frames).*
+*`--raw`: parse 256000 baud, 30-byte binary frames.*
 
 > [!TIP]
-> **Hardware Tip for PL2303HX:** Ensure the adapter's voltage jumper is set to **3.3V logic level**. Power the LD2450 sensor from the adapter's 5V pin, connect GND to GND, and cross RX/TX (`PL2303 RX` $\to$ `LD2450 TX`, `PL2303 TX` $\to$ `LD2450 RX`).
+> **PL2303HX:** voltage jumper → **3.3V logic**. LD2450 power from adapter 5V pin, GND to GND, cross RX/TX (`PL2303 RX` $\to$ `LD2450 TX`, `PL2303 TX` $\to$ `LD2450 RX`).
 >
-> If you encounter `Permission denied: '/dev/ttyUSB0'`, grant your Linux user access to the serial device:
+> `Permission denied: '/dev/ttyUSB0'` → add user to `dialout`:
 > ```bash
 > sudo usermod -a -G dialout $USER
 > newgrp dialout
@@ -56,24 +56,24 @@ When the radar sensor is plugged into your PC via a USB-to-UART adapter (e.g. **
 
 ---
 
-### 4. Connected to the Radar Simulator (Virtual PTY Loopback)
-In **Terminal 1**, start the sensor simulator on a virtual PTY:
+### 4. Simulator via Virtual PTY
+**Terminal 1**, simulator on PTY:
 ```bash
 ./scripts/sim-radar.sh --sensor ld2450 --scenario patrol --pty
 # Output will display: Connect client/tests to: /dev/pts/X
 ```
 
-In **Terminal 2**, launch the GUI pointing to the virtual device:
+**Terminal 2**, GUI on that device:
 ```bash
 ./scripts/gui.sh --port /dev/pts/X --raw
 ```
-The GUI will render the simulated patrolling targets in real-time!
+GUI shows simulated patrol targets.
 
 ---
 
-## 🌐 Alternative: Tactical Web HUD (Browser Display)
+## Alternative: Web HUD
 
-If you prefer viewing the radar in a web browser, on a mobile device/tablet, or on a headless server without Tkinter/X11:
+Use for browser, phone/tablet, or headless host without Tkinter/X11:
 
 ```bash
 # Standalone Demo Mode (opens at http://localhost:8088):
@@ -89,7 +89,7 @@ If you prefer viewing the radar in a web browser, on a mobile device/tablet, or 
 ./scripts/sim-tmux.sh --web
 ```
 
-### Web HUD Highlights:
-- **Zero Build / Vanilla Web Tech:** Powered by pure HTML5 Canvas and WebSocket (`/ws`) at 60 FPS.
-- **LAN & Mobile Ready:** Open `http://<your-ip>:8088` on any phone or tablet on the same Wi-Fi.
-- **Audio Alerts:** Toggleable synthesized Web Audio proximity warning beeps when contacts enter $<1.5$m.
+### Web HUD
+- HTML5 Canvas + WebSocket (`/ws`), 60 FPS, no build step.
+- LAN: `http://<your-ip>:8088` from any device on same network.
+- Audio: toggleable Web Audio beeps when target $<1.5$ m.

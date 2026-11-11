@@ -2,46 +2,59 @@
 
 ## Overview
 
-The **Heartbeat Radar Sensor** project follows **Hexagonal Architecture** (also known as *Ports & Adapters*).
-In embedded systems development, firmware code is frequently tangled with vendor-specific SDKs (e.g., `<Arduino.h>`, ESP-IDF APIs, driver libraries). This makes automated testing without hardware almost impossible, leads to tight coupling, and prevents replacing sensors or displays without rewriting application logic.
+Hexagonal architecture (ports & adapters).
+Problem: firmware tangled with vendor SDKs (`<Arduino.h>`, ESP-IDF, driver libs) → no hardware-free tests, tight coupling, sensor/display swap needs app rewrite.
+Fix: core domain behind abstract ports.
 
-By isolating the **Core Domain** behind abstract **Ports (Interfaces)**, we achieve:
-1. **Host-Side Testing (TDD):** Run Catch2 unit tests in Docker on x86 desktop within milliseconds.
-2. **Hardware Agnosticism:** Swap sensors (e.g., HLK-LD2450 to RD-03D or multi-sensor RCWL-0516) or displays (ST7789 to ILI9341 or SSD1306) simply by implementing a new adapter.
-3. **Clean Code & SOLID:** Strong adherence to Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion.
+Result:
+1. **Host tests (TDD):** Catch2 in Docker on x86, milliseconds.
+2. **Hardware swap:** new sensor (HLK-LD2450 → RD-03D, RCWL-0516 array) or display (ST7789 → ILI9341, SSD1306) = new adapter only.
+3. **SOLID:** SRP, OCP, LSP, ISP, DIP.
 
 ---
 
-## Architectural Diagram
+## Diagram
 
 ```mermaid
 flowchart TD
-    subgraph Core["Core Domain (Pure C++17, zero hardware deps)"]
-        RadarEngine["RadarEngine\n- Target tracking & aging\n- Range classification\n- Sweep management"]
-        SignalProcessor["SignalProcessor\n- Threshold filtering\n- Coordinate scaling\n- Noise dampening"]
-        Target["Target\n- Coordinates (X, Y)\n- Speed & Distance\n- Contact state"]
+    subgraph Core["Core Domain (pure C++17, no hardware deps)"]
+        RadarEngine["RadarEngine\n- scan → transform → evaluate\n- sweep angle\n- buzzer pacing"]
+        Evaluator["DistanceThreatEvaluator\nimplements IThreatEvaluator"]
+        Transformer["CoordinateTransformer\n- mounting + attitude rotation"]
+        Attitude["AttitudeEstimator\n- IMU → Orientation"]
+        Parser["LD2450Parser\n- binary frame decode"]
+        TargetData["TargetData\n- x_mm, y_mm, speed_cms\n- zone(danger_m, caution_m)"]
     end
 
-    subgraph Ports["Ports (Abstract C++ Interfaces)"]
-        ISensor["ISensor\n+ scan() : std::vector&lt;TargetData&gt;\n+ configure(sensitivity) : bool"]
-        IDisplay["IDisplay\n+ drawRadar(targets) : void\n+ drawSweep(angle) : void\n+ drawAlert(zone) : void"]
-        ITimer["ITimer\n+ millis() : uint32_t\n+ delay(ms) : void"]
-        IBuzzer["IBuzzer\n+ beep(freq, duration) : void"]
+    subgraph Ports["Ports (abstract C++ interfaces)"]
+        ISensor["ISensor\n+ init() : bool\n+ scan() : std::vector&lt;TargetData&gt;\n+ specs() : SensorSpecs\n+ is_connected() : bool"]
+        IDisplay["IDisplay\n+ init() / clear() / flush()\n+ draw_sweep(angle_deg)\n+ draw_radar(targets)\n+ draw_alert(threat)\n+ draw_attitude(orientation, imu)"]
+        ITimer["ITimer\n+ millis() : uint32_t\n+ delay_ms(ms)"]
+        IBuzzer["IBuzzer\n+ beep(freq_hz, duration_ms)\n+ stop()"]
+        IImu["IImu\n+ init() / is_connected()\n+ read_imu(out) : bool"]
+        IThreat["IThreatEvaluator\n+ evaluate(targets) : ThreatAssessment"]
     end
 
-    subgraph Adapters["Adapters (Hardware & Platform Specific)"]
-        LD2450["LD2450Adapter\nimplements ISensor\n(Hardware UART2)"]
-        ST7789["ST7789Adapter\nimplements IDisplay\n(SPI / TFT_eSPI)"]
-        ESP32Timer["ESP32TimerAdapter\nimplements ITimer\n(FreeRTOS / Arduino millis)"]
+    subgraph Adapters["Adapters (hardware / platform)"]
+        LD2450["LD2450Adapter\nimplements ISensor\n(UART2)"]
+        Serial["SerialDisplayAdapter\nimplements IDisplay\n(JSON over Serial)"]
+        Wifi["WifiDisplayAdapter\nimplements IDisplay\n(JSON over TCP)"]
+        ST7789["ST7789Adapter\nimplements IDisplay\n(SPI / TFT_eSPI, stub)"]
+        ESP32Timer["ESP32TimerAdapter\nimplements ITimer"]
+        Buzzer["ESP32BuzzerAdapter\nimplements IBuzzer\n(PWM)"]
+        MPU["MPU6050Adapter\nimplements IImu\n(I2C)"]
     end
 
-    subgraph TestAdapters["Test / Simulation Adapters"]
-        MockSensor["MockSensor\nimplements ISensor\n(Deterministic simulation)"]
-        MockDisplay["MockDisplay\nimplements IDisplay\n(Buffer verification)"]
-        MockTimer["MockTimer\nimplements ITimer\n(Manual time advance)"]
+    subgraph TestAdapters["Test mocks (test_native/mocks/)"]
+        MockSensor["MockSensor"]
+        MockDisplay["MockDisplay"]
+        MockTimer["MockTimer"]
+        MockBuzzer["MockBuzzer"]
+        MockImu["MockImu"]
+        MockEval["MockThreatEvaluator"]
     end
 
-    subgraph FutureAdapters["Future Sensor Adapters"]
+    subgraph FutureAdapters["Planned sensor adapters"]
         RCWL["RCWL0516TriangulationAdapter\nimplements ISensor"]
         RD03D["RD03DAdapter\nimplements ISensor"]
     end
@@ -50,16 +63,27 @@ flowchart TD
     RadarEngine --> IDisplay
     RadarEngine --> ITimer
     RadarEngine --> IBuzzer
-    RadarEngine --> SignalProcessor
-    RadarEngine --> Target
+    RadarEngine --> IImu
+    RadarEngine --> IThreat
+    RadarEngine --> Transformer
+    RadarEngine --> Attitude
+    Evaluator --> IThreat
 
     LD2450 --> ISensor
+    LD2450 --> Parser
+    Serial --> IDisplay
+    Wifi --> IDisplay
     ST7789 --> IDisplay
     ESP32Timer --> ITimer
+    Buzzer --> IBuzzer
+    MPU --> IImu
 
     MockSensor --> ISensor
     MockDisplay --> IDisplay
     MockTimer --> ITimer
+    MockBuzzer --> IBuzzer
+    MockImu --> IImu
+    MockEval --> IThreat
 
     RCWL -.-> ISensor
     RD03D -.-> ISensor
@@ -70,33 +94,38 @@ flowchart TD
 ## Layers
 
 ### 1. Core Domain (`src/core/`)
-- Pure C++17 logic with **zero** platform headers (`<Arduino.h>`, `esp_*.h`).
-- Only standard library headers permitted (`<vector>`, `<cstdint>`, `<memory>`, `<algorithm>`).
-- **`RadarEngine`**: Central orchestrator. Updates targets, manages radar sweep angle, evaluates detection zones (Near / Mid / Far).
-- **`SignalProcessor`**: Validates raw sensor inputs, removes noise, and maps coordinate grids.
-- **`Target`**: Data structure and lifecycle methods for tracked contacts.
+- Pure C++17. No platform headers (`<Arduino.h>`, `esp_*.h`).
+- Standard library only (`<vector>`, `<cstdint>`, `<memory>`, `<algorithm>`, `<cmath>`).
+- **`RadarEngine`**: orchestrator. `update()`: scan sensor, read IMU, transform coords, evaluate threat, advance sweep, draw, pace buzzer.
+- **`DistanceThreatEvaluator`**: targets → `ThreatAssessment`; zones `Safe` / `Caution` / `Danger` from `danger_distance_m`, `caution_distance_m`.
+- **`CoordinateTransformer`**: mounting yaw + attitude compensation into device forward frame.
+- **`AttitudeEstimator`**: IMU samples → `Orientation`.
+- **`LD2450Parser`**: LD2450 binary frame decode (sign-magnitude ints).
+- **`TargetData`**, **`SensorSpecs`**, **`ThreatAssessment`**, **`ImuData`**: value types.
 
-### 2. Ports & Composite Patterns (`src/ports/`)
-Abstract base classes defining pure virtual contracts. When multi-module operation is required, **Composite Adapters** implement the port contract:
+### 2. Ports & Composite Pattern (`src/ports/`)
+Abstract base classes, pure virtual contracts.
+Multi-module operation → composite adapter implementing same port.
+**Status: planned.** `CompositeSensor` / `CompositeDisplay` not implemented; `build.sh` and `main.cpp` reject multi-sensor/multi-display builds. Design: `docs/backlog/composite-sensor-display.md`.
 
 ```mermaid
 flowchart LR
-    subgraph MultiSensorFusion["Multi-Sensor Fusion (CompositeSensor)"]
-        ISensor["ISensor Contract"]
+    subgraph MultiSensorFusion["Multi-Sensor Fusion (CompositeSensor, planned)"]
+        ISensor["ISensor"]
         CompSens["CompositeSensor\n(implements ISensor)"]
-        S1["Sensor 1 (Front LD2450)"]
-        S2["Sensor 2 (Rear RD-03D)"]
+        S1["Sensor 1 (front LD2450)"]
+        S2["Sensor 2 (rear RD-03D)"]
         ISensor <|.. CompSens
         CompSens --> S1
         CompSens --> S2
     end
 
-    subgraph MultiDisplayBroadcast["Multi-Display Broadcaster (CompositeDisplay)"]
-        IDisplay["IDisplay Contract"]
+    subgraph MultiDisplayBroadcast["Multi-Display Broadcast (CompositeDisplay, planned)"]
+        IDisplay["IDisplay"]
         CompDisp["CompositeDisplay\n(implements IDisplay)"]
-        D1["TFT Display (ST7789)"]
-        D2["PC Serial Telemetry (USB JSON)"]
-        D3["Wireless Phone Sync (BLE)"]
+        D1["TFT (ST7789)"]
+        D2["Serial JSON telemetry (USB)"]
+        D3["BLE"]
         IDisplay <|.. CompDisp
         CompDisp --> D1
         CompDisp --> D2
@@ -104,14 +133,18 @@ flowchart LR
     end
 ```
 
-- **`CompositeSensor` (Fusion):** Aggregates $N$ radar sensors into a unified coordinate list with spatial de-duplication.
-- **`CompositeDisplay` (Broadcaster):** Fans out radar draw calls to $M$ simultaneous output sinks (e.g. Physical TFT + USB Serial Telemetry + BLE).
+- **`CompositeSensor`:** merge $N$ sensors into one target list, spatial de-dup.
+- **`CompositeDisplay`:** fan out draw calls to $M$ sinks (TFT + USB serial + BLE).
 
 ### 3. Adapters (`src/adapters/`)
-- Hardware-specific implementations that interact with ESP32 peripherals.
-- **`LD2450Adapter`** (`ld2450_adapter.cpp` / `ld2450_protocol.cpp`): Parses 256000 baud UART binary frames into `TargetData`.
-- **`ST7789Adapter`**: Uses `TFT_eSPI` to draw tactical radar UI on 240x320 SPI display.
-- **`ESP32TimerAdapter`**: Implements timing via native ESP32 clock functions.
+ESP32 peripheral implementations.
+- **`LD2450Adapter`** (`sensors/ld2450_adapter.cpp`): UART2 @ 256000 baud, frames → `TargetData` via `LD2450Parser`. Owns `SPECS`.
+- **`SerialDisplayAdapter`**: JSON telemetry over `Serial`.
+- **`WifiDisplayAdapter`**: same JSON over TCP server (default port 3333). One client at a time.
+- **`ST7789Adapter`**: `TFT_eSPI`, 240x320 SPI. Renderer stub.
+- **`ESP32BuzzerAdapter`**: PWM tone.
+- **`MPU6050Adapter`** (`imu/`): I2C accel + gyro.
+- **`ESP32TimerAdapter`**: ESP32 clock (`millis`, delay).
 
 ---
 
@@ -120,42 +153,46 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     autonumber
-    participant App as Main Loop (main.cpp)
-    participant Sensor as LD2450Adapter (ISensor)
+    participant App as loop() (main.cpp)
     participant Core as RadarEngine
-    participant Display as ST7789Adapter (IDisplay)
+    participant Sensor as LD2450Adapter (ISensor)
+    participant Eval as DistanceThreatEvaluator
+    participant Display as IDisplay adapter
 
-    App->>Sensor: scan()
-    Sensor-->>App: std::vector&lt;TargetData&gt;
-    App->>Core: update(targets, current_time)
-    Core->>Core: filter & update contact tracks
+    App->>Core: update()
+    Core->>Sensor: scan()
+    Sensor-->>Core: std::vector&lt;TargetData&gt;
+    Core->>Core: transform coords (mounting + attitude)
+    Core->>Eval: evaluate(targets)
+    Eval-->>Core: ThreatAssessment
     Core->>Core: advance sweep angle
-    Core-->>App: getVisibleTargets()
-    App->>Display: drawSweep(angle)
-    App->>Display: drawRadar(visible_targets)
+    Core->>Display: clear(), draw_sweep(angle), draw_radar(targets)
+    Core->>Display: draw_alert(threat), draw_attitude(...), flush()
 ```
 
 ---
 
 ## Dependency Injection in `main.cpp`
 
-Hardware adapters are instantiated in `main.cpp` and injected into `RadarEngine` via constructor:
+Composition root. Adapters built in `main.cpp` (inside `ENABLE_*` guards), injected into `RadarEngine` constructor. Only file reading config macros.
 
 ```cpp
-// Composition Root (main.cpp)
-LD2450Adapter sensor(Serial2);
-ST7789Adapter display;
-ESP32TimerAdapter timer;
+// Composition root (main.cpp), simplified
+SelectedSensor sensor_adapter(Serial2, LD2450_RX_PIN, LD2450_TX_PIN, LD2450_BAUD_RATE);
+SerialDisplayAdapter display_adapter(Serial, SPECS.danger_distance_m, SPECS.caution_distance_m);
+ESP32BuzzerAdapter buzzer_adapter(BUZZER_PIN);
+DistanceThreatEvaluator threat_evaluator(SPECS.danger_distance_m, SPECS.caution_distance_m, SPECS.max_distance_m);
 
-RadarEngine engine(sensor, display, timer);
+RadarEngine engine(sensor_adapter, display_adapter, timer_adapter, threat_evaluator,
+                   &buzzer_adapter /* or nullptr */, &imu_adapter /* or nullptr */);
 
 void setup() {
     engine.init();
 }
 
 void loop() {
-    engine.tick();
+    engine.update();
 }
 ```
 
-In test suites (`test_native/`), `MockSensor`, `MockDisplay`, and `MockTimer` are injected instead!
+Tests (`test_native/`): mocks injected instead.

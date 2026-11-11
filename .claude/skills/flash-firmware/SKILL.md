@@ -1,25 +1,24 @@
 ---
 name: flash-firmware
-description: Guide and execute the build, verification, and flashing process for the Heartbeat Radar Sensor ESP32 target.
+description: Build, verify, flash Heartbeat Radar Sensor firmware to ESP32 (Docker PlatformIO build, upload, serial monitor check).
 ---
 
 # Skill: Flash Firmware
 
 ## Purpose
-This skill coordinates the compilation of firmware via the Dockerized PlatformIO environment and guides flashing to a connected ESP32 target device.
+Build firmware in Docker PlatformIO env. Flash to USB-connected ESP32.
 
-## Flashing Procedure
+## Procedure
 
-### Step 1: Pre-flight Verification
-Run local static analysis, test suite, and format check to prevent flashing non-compliant firmware:
+### Step 1: Pre-flight
+Format check, lint, tests. Block flashing non-compliant firmware:
 ```bash
 ./scripts/format-check.sh
 ./scripts/lint.sh
 ./scripts/test.sh
 ```
 
-### Step 2: Build Firmware in Docker
-Compile the project binary inside the container:
+### Step 2: Build in Docker
 ```bash
 # Default build: LD2450 sensor + Serial JSON telemetry output
 ./scripts/build.sh
@@ -36,10 +35,10 @@ WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi -f WIFI_TCP_P
 # With SPI TFT display output (renderer is currently a stub)
 ./scripts/build.sh --displays st7789
 ```
-Verify that the output `.pio/build/esp32dev/firmware.bin` was created.
+Check output exists: `.pio/build/esp32dev/firmware.bin`.
 
-### Step 3: Flash to ESP32
-Connect the ESP32 via USB and run:
+### Step 3: Flash
+ESP32 on USB:
 ```bash
 # Default serial device /dev/ttyUSB0
 ./scripts/upload.sh
@@ -48,12 +47,13 @@ Connect the ESP32 via USB and run:
 ./scripts/upload.sh /dev/ttyACM0
 ```
 
-### Step 4: Verify Device Boot
-Open the serial monitor to view startup logs and verify sensor/display initialization:
+### Step 4: Verify Boot
+Serial monitor; check sensor/display init logs:
 ```bash
 ./scripts/monitor.sh /dev/ttyUSB0
 ```
-Telemetry will output JSON frames:
+Telemetry: one JSON frame per line (`src/core/telemetry_frame.cpp`):
 ```json
-{"threat":"Safe","targets":[{"id":1,"x":0.5,"y":2.0,"speed":-0.2,"distance":2.06,"threat_zone":"Safe"}]}
+{"type":"radar_frame","sweep_deg":12.5,"alert":"Safe","severity":0.00,"targets":[{"id":1,"x":0.5,"y":2.0,"speed":-0.2,"distance":2.06,"threat_zone":"Safe"}]}
 ```
+`imu` object appended when MPU-6050 data valid.

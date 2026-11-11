@@ -1,69 +1,79 @@
 # Orthogonal Architecture Guide
 
-## The Problem: Combinatorial Explosion
+## Problem: Combinatorial Explosion
 
-In typical embedded codebases, adding a new hardware module (microcontroller, sensor, or display) causes a multiplicative explosion of build targets:
+Monolithic build matrix: every new board, sensor, or display multiplies build targets:
 $$\text{Environments} = N_{\text{boards}} \times M_{\text{sensors}} \times K_{\text{displays}}$$
 
-If we support:
-- **3 Boards:** ESP32 DevKit, ESP32-S3, Native Host
-- **3 Sensors:** HLK-LD2450, Ai-Thinker RD-03D, RCWL-0516
-- **3 Displays:** ST7789, ILI9341, SSD1306
+Example:
+- **3 boards:** ESP32 DevKit, ESP32-S3, native host
+- **3 sensors:** HLK-LD2450, Ai-Thinker RD-03D, RCWL-0516
+- **3 displays:** ST7789, ILI9341, SSD1306
 
-A monolithic build matrix would require **27 hardcoded build targets** in `platformio.ini`! Adding just one more board would require adding 9 new configurations.
+→ **27 hardcoded targets** in `platformio.ini`. One more board → +9 configs.
 
 ---
 
-## The Solution: Decoupled Orthogonal Axes
+## Solution: Independent Axes
 
-By applying **Hexagonal Architecture (Ports & Adapters)**, each axis is completely independent:
+Ports & adapters → each axis independent:
 
 ```mermaid
 flowchart TD
-    subgraph Axes["Orthogonal Selection Axes"]
+    subgraph Axes["Selection Axes"]
         Board["Axis 1: Board\n(--board esp32dev)"]
-        Sensor["Axis 2: Sensor\n(--sensor ld2450)"]
-        Display["Axis 3: Display\n(--display st7789)"]
+        Sensor["Axis 2: Sensor\n(--sensors ld2450)"]
+        Display["Axis 3: Display\n(--displays serial)"]
     end
 
-    subgraph Factory["Composition Root (Dependency Injection)"]
-        SensorFactory["SensorFactory::create() -> std::unique_ptr&lt;ISensor&gt;"]
-        DisplayFactory["DisplayFactory::create() -> std::unique_ptr&lt;IDisplay&gt;"]
+    subgraph Root["Composition Root (main.cpp)"]
+        Flags["build.sh → -DENABLE_SENSOR_* / -DENABLE_DISPLAY_*"]
+        Select["#if ENABLE_* → construct selected adapter"]
     end
 
     subgraph Domain["Pure Domain"]
-        Core["RadarEngine(&ISensor, &IDisplay, &ITimer)"]
+        Core["RadarEngine(&ISensor, &IDisplay, &ITimer, &IThreatEvaluator, IBuzzer*, IImu*)"]
     end
 
-    Board --> Factory
-    Sensor --> SensorFactory
-    Display --> DisplayFactory
-    SensorFactory --> Core
-    DisplayFactory --> Core
+    Board --> Root
+    Sensor --> Flags
+    Display --> Flags
+    Flags --> Select
+    Select --> Core
 ```
 
-### Adding New Components:
-- **Adding a new board:** Implement 1 board definition in `platformio.ini` or pin mapping header.
-- **Adding a new sensor:** Implement 1 class inheriting `ISensor`.
-- **Adding a new display:** Implement 1 class inheriting `IDisplay`.
+### Adding Components
+- **Board:** one `[env:<board>]` in `platformio.ini` with all wiring macros. No code change.
+- **Sensor:** one class implementing `ISensor` + `main.cpp` block.
+- **Display:** one class implementing `IDisplay` + `main.cpp` block.
 
 ---
 
 ## Build Commands
 
-You can freely select any combination of boards, single/multiple sensors, and single/multiple display sinks via `./scripts/build.sh`:
+Implemented today: sensor `ld2450`; displays `serial` (default), `st7789` (stub), `wifi`; IMU `none` | `mpu6050`. One sensor, one display per build.
 
 ```bash
-# Default build: ESP32 DevKit + LD2450 + ST7789
+# Default build: esp32dev + LD2450 + serial telemetry
 ./scripts/build.sh
 
+# TFT display
+./scripts/build.sh --displays st7789
+
+# WiFi TCP telemetry (creds from env)
+WIFI_SSID=… WIFI_PASSWORD=… ./scripts/build.sh --displays wifi
+```
+
+Planned (rejected by `build.sh` until `CompositeSensor` / `CompositeDisplay` and adapters exist):
+
+```bash
 # Multi-display: Physical ST7789 TFT + PC Serial Telemetry over USB
 ./scripts/build.sh --displays st7789,serial
 
-# Multi-sensor fusion: Dual LD2450s (front + rear)
+# Multi-sensor fusion: LD2450 (front) + RD-03D (rear)
 ./scripts/build.sh --sensors ld2450,rd03d --displays st7789,serial
 
-# Dual TFT screens (e.g. main HUD + secondary target vector monitor):
+# Dual TFT screens
 ./scripts/build.sh --displays st7789,ili9341
 
 # Full custom permutation:

@@ -1,8 +1,10 @@
 # Hardware Diagrams (Fritzing)
 
-This directory stores hardware wiring diagrams and breadboard layouts created with [Fritzing](https://fritzing.org/).
+Wiring diagrams, breadboard layouts. Tool: [Fritzing](https://fritzing.org/).
 
 ## Files
+
+Planned, not committed yet.
 
 | Source (`.fzz`) | Vector (`.svg`) | Description |
 |-----------------|-----------------|-------------|
@@ -10,5 +12,5 @@ This directory stores hardware wiring diagrams and breadboard layouts created wi
 | `esp32-st7789-wiring.fzz` | `esp32-st7789-wiring.svg` | ESP32 to ST7789 SPI display interface wiring |
 | `full-assembly.fzz` | `full-assembly.svg` | Complete breadboard assembly combining sensor, display, and power |
 
-## Note on Version Control
-`.fzz` files are compressed XML archives. To ensure diffability and GitHub inline rendering, always commit the companion `.svg` export alongside the `.fzz` file.
+## Version Control
+`.fzz` = compressed XML archive, no useful diff. Always commit `.svg` export next to `.fzz` (diffable, renders inline on GitHub).
